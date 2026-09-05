@@ -1,4 +1,11 @@
-import { EquipmentType, InstrumentType, PrismaClient, Role, ServiceStageType } from '@prisma/client'
+import { EquipmentType, ExpenseFrequency, InstrumentType, PrismaClient, Role, ServiceStageType } from '@prisma/client'
+
+const FIXED_EXPENSES: Array<{ name: string; category: string; amount: number; frequency: ExpenseFrequency }> = [
+  { name: 'Renta del local', category: 'Renta', amount: 12000, frequency: ExpenseFrequency.MONTHLY },
+  { name: 'Nómina base', category: 'Nómina', amount: 18000, frequency: ExpenseFrequency.MONTHLY },
+  { name: 'Servicios (luz, agua, internet)', category: 'Servicios', amount: 2500, frequency: ExpenseFrequency.MONTHLY },
+  { name: 'Seguro del local', category: 'Seguros', amount: 6000, frequency: ExpenseFrequency.YEARLY },
+]
 
 const WORKSTATIONS: Array<{ name: string; category: ServiceStageType; sortOrder: number }> = [
   { name: 'Tina 1', category: ServiceStageType.BATH, sortOrder: 1 },
@@ -183,6 +190,14 @@ async function main() {
     groomersCreated++
   }
 
+  let fixedExpensesCreated = 0
+  for (const expense of FIXED_EXPENSES) {
+    const exists = await prisma.fixedExpense.findFirst({ where: { name: expense.name } })
+    if (exists) continue
+    await prisma.fixedExpense.create({ data: { ...expense, effectiveFrom: new Date('2026-01-01') } })
+    fixedExpensesCreated++
+  }
+
   let workstationsCreated = 0
   for (const station of WORKSTATIONS) {
     const exists = await prisma.workstation.findFirst({ where: { name: station.name } })
@@ -227,7 +242,7 @@ async function main() {
   }
 
   console.log(
-    `Seed completo: ${servicesCreated} servicios, ${productsCreated} productos, ${formulasCreated} fórmulas, ${instrumentsCreated} instrumentos, ${equipmentCreated} equipos, ${groomersCreated} groomers, ${workstationsCreated} estaciones creadas, pipeline demo: ${pipelineCreated} (el resto ya existía).`
+    `Seed completo: ${servicesCreated} servicios, ${productsCreated} productos, ${formulasCreated} fórmulas, ${instrumentsCreated} instrumentos, ${equipmentCreated} equipos, ${groomersCreated} groomers, ${workstationsCreated} estaciones, ${fixedExpensesCreated} gastos fijos creados, pipeline demo: ${pipelineCreated} (el resto ya existía).`
   )
 }
 
