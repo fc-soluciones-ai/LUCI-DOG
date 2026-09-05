@@ -23,3 +23,9 @@ next-env.d.ts
 
 # prisma
 prisma/migration.sql
+
+.vercel
+.env*
+
+# artefactos locales del harness de Claude Code (no parte del proyecto)
+.claude/scheduled_tasks.lock
