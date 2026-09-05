@@ -1,5 +1,16 @@
 import { EquipmentType, InstrumentType, PrismaClient, Role, ServiceStageType } from '@prisma/client'
 
+const WORKSTATIONS: Array<{ name: string; category: ServiceStageType; sortOrder: number }> = [
+  { name: 'Tina 1', category: ServiceStageType.BATH, sortOrder: 1 },
+  { name: 'Tina 2', category: ServiceStageType.BATH, sortOrder: 2 },
+  { name: 'Tina 3', category: ServiceStageType.BATH, sortOrder: 3 },
+  { name: 'Secador Turbo 1', category: ServiceStageType.DRYING, sortOrder: 4 },
+  { name: 'Secador Turbo 2', category: ServiceStageType.DRYING, sortOrder: 5 },
+  { name: 'Mesa Máster', category: ServiceStageType.HAIRCUT, sortOrder: 6 },
+  { name: 'Mesa 2', category: ServiceStageType.HAIRCUT, sortOrder: 7 },
+  { name: 'Mesa 3', category: ServiceStageType.HAIRCUT, sortOrder: 8 },
+]
+
 const prisma = new PrismaClient()
 
 const SERVICES: Array<{
@@ -172,8 +183,51 @@ async function main() {
     groomersCreated++
   }
 
+  let workstationsCreated = 0
+  for (const station of WORKSTATIONS) {
+    const exists = await prisma.workstation.findFirst({ where: { name: station.name } })
+    if (exists) continue
+    await prisma.workstation.create({ data: station })
+    workstationsCreated++
+  }
+
+  let pipelineCreated = false
+  const pipelineService = await prisma.service.findFirst({ where: { name: 'Baño y corte de raza' } })
+  if (pipelineService) {
+    const existingPipeline = await prisma.servicePipeline.findUnique({ where: { serviceId: pipelineService.id } })
+    if (!existingPipeline) {
+      await prisma.servicePipeline.create({
+        data: {
+          serviceId: pipelineService.id,
+          name: 'Baño Completo',
+          description: 'Baño, secado y corte con checklist de peluquería (Dashboard TV).',
+          steps: {
+            create: [
+              { name: 'Baño', order: 1, stageType: ServiceStageType.BATH, standardDurationMin: 30 },
+              { name: 'Secado', order: 2, stageType: ServiceStageType.DRYING, standardDurationMin: 30 },
+              {
+                name: 'Corte',
+                order: 3,
+                stageType: ServiceStageType.HAIRCUT,
+                standardDurationMin: 40,
+                subProcesses: {
+                  create: [
+                    { name: 'Desmotado', order: 1 },
+                    { name: 'Corte higiénico', order: 2 },
+                    { name: 'Vaciado de plantares', order: 3 },
+                  ],
+                },
+              },
+            ],
+          },
+        },
+      })
+      pipelineCreated = true
+    }
+  }
+
   console.log(
-    `Seed completo: ${servicesCreated} servicios, ${productsCreated} productos, ${formulasCreated} fórmulas, ${instrumentsCreated} instrumentos, ${equipmentCreated} equipos, ${groomersCreated} groomers creados (el resto ya existía).`
+    `Seed completo: ${servicesCreated} servicios, ${productsCreated} productos, ${formulasCreated} fórmulas, ${instrumentsCreated} instrumentos, ${equipmentCreated} equipos, ${groomersCreated} groomers, ${workstationsCreated} estaciones creadas, pipeline demo: ${pipelineCreated} (el resto ya existía).`
   )
 }
 

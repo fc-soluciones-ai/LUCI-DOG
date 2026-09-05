@@ -2,6 +2,17 @@ import { AppointmentStatus, NotificationStage, NotificationStatus, Role } from '
 import { prisma } from '@/lib/prisma'
 import { computeLiveStage } from './liveStatus'
 
+const STAGE_LABEL: Record<string, string> = {
+  BATH: 'Baño',
+  DRYING: 'Secado',
+  HAIRCUT: 'Corte',
+  NAILS: 'Uñas',
+  EARS: 'Oídos',
+  DESHEDDING: 'Deslanado',
+  FINISHING: 'Acabado',
+  OTHER: 'Otro',
+}
+
 function todayRange() {
   const start = new Date()
   start.setHours(0, 0, 0, 0)
@@ -27,10 +38,16 @@ export async function getTodayBoard() {
       service: true,
       groomer: true,
       timeLogs: { orderBy: { orderIndex: 'asc' } },
+      pipeline: { select: { id: true, name: true } },
+      appointmentSteps: {
+        orderBy: { orderIndex: 'asc' },
+        include: { processStep: { include: { subProcesses: true } }, subProcessCompletions: true },
+      },
     },
   })
 
   const groomerStaff = await prisma.staff.findMany({ where: { role: Role.GROOMER, active: true } })
+  const workstations = await prisma.workstation.findMany({ where: { active: true }, orderBy: { sortOrder: 'asc' } })
 
   const pendingDelayNotifications = await prisma.notificationLog.findMany({
     where: { stage: NotificationStage.DELAY_ALERT, status: NotificationStatus.QUEUED },
@@ -50,6 +67,8 @@ export async function getTodayBoard() {
     scheduledStart: appointment.scheduledStart.toISOString(),
     scheduledEnd: appointment.scheduledEnd.toISOString(),
     estimatedEnd: appointment.estimatedEnd?.toISOString() ?? null,
+    pipelineId: appointment.pipelineId,
+    pipelineName: appointment.pipeline?.name ?? null,
     stages: appointment.timeLogs.map((timeLog) => {
       const live = computeLiveStage(timeLog, now)
       return {
@@ -63,6 +82,24 @@ export async function getTodayBoard() {
         status: live.status,
         delaySeconds: live.delaySeconds,
         elapsedSeconds: live.elapsedSeconds,
+      }
+    }),
+    pipelineSteps: appointment.appointmentSteps.map((step) => {
+      const live = computeLiveStage(step, now)
+      const doneIds = new Set(step.subProcessCompletions.map((c) => c.subProcessId))
+      return {
+        id: step.id,
+        stageName: `${STAGE_LABEL[step.processStep.stageType] ?? step.processStep.stageType} — ${step.processStep.name}`,
+        workstationId: step.workstationId,
+        standardDurationMin: step.overrideDurationMin ?? step.standardDurationMin,
+        startedAt: step.startedAt?.toISOString() ?? null,
+        endedAt: step.endedAt?.toISOString() ?? null,
+        status: live.status,
+        delaySeconds: live.delaySeconds,
+        elapsedSeconds: live.elapsedSeconds,
+        subProcesses: step.processStep.subProcesses
+          .sort((a, b) => a.order - b.order)
+          .map((sub) => ({ id: sub.id, name: sub.name, done: doneIds.has(sub.id) })),
       }
     }),
   }))
@@ -82,6 +119,7 @@ export async function getTodayBoard() {
   return {
     date: start.toISOString(),
     groomers,
+    workstations: workstations.map((w) => ({ id: w.id, name: w.name, category: w.category })),
     appointments: boardAppointments,
     pendingDelayNotifications: pendingDelayNotifications.map((notification) => ({
       id: notification.id,

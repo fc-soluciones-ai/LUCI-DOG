@@ -272,6 +272,7 @@ model Service {
   appointments      Appointment[]
   recurringSchedules RecurringSchedule[]
   formulas          Formula[]
+  pipeline          ServicePipeline?
 }
 
 // Desglose de etapas estándar por servicio (para el semáforo de tiempos)
@@ -312,6 +313,8 @@ model Appointment {
   serviceId           String
   groomerId           String?
   recurringScheduleId String?
+  pipelineId          String? // Dashboard TV / Control Center: si está seteado, la ejecución
+                              // se rastrea vía AppointmentStep en lugar de TimeLog.
 
   source         AppointmentSource @default(MANUAL_STAFF)
   status         AppointmentStatus @default(PENDING_CONFIRMATION)
@@ -333,6 +336,7 @@ model Appointment {
   service           Service            @relation(fields: [serviceId], references: [id])
   groomer           Staff?             @relation(fields: [groomerId], references: [id])
   recurringSchedule RecurringSchedule? @relation(fields: [recurringScheduleId], references: [id])
+  pipeline          ServicePipeline?   @relation(fields: [pipelineId], references: [id])
 
   timeLogs       TimeLog[]
   notifications  NotificationLog[]
@@ -340,10 +344,12 @@ model Appointment {
   instrumentUsages InstrumentUsageLog[]
   invoice        Invoice?
   prepItems      DailyPrepItem[]
+  appointmentSteps AppointmentStep[]
 
   @@index([petId])
   @@index([tutorId])
   @@index([groomerId])
+  @@index([pipelineId])
   @@index([scheduledStart])
   @@index([status])
 }
@@ -639,4 +645,115 @@ model FinancialSnapshot {
   generatedAt         DateTime @default(now())
 
   @@unique([month])
+}
+
+// ----------------------------------------------------------------------------
+// DASHBOARD TV / CONTROL CENTER: estaciones, pipelines configurables y su
+// ejecución por cita. Convive con Service/ServiceStageTemplate/TimeLog: un
+// Service solo obtiene el tratamiento rico (estaciones físicas, subprocesos,
+// TV en tiempo real) si tiene un ServicePipeline vinculado; si no, sigue
+// funcionando como hasta ahora vía TimeLog.
+// ----------------------------------------------------------------------------
+
+// Estación física de trabajo (ej. "Tina 1", "Mesa Máster", "Secador Turbo 2").
+// `category` reutiliza ServiceStageType: qué tipo de etapa atiende esta estación.
+model Workstation {
+  id        String           @id @default(cuid())
+  name      String
+  category  ServiceStageType
+  active    Boolean          @default(true)
+  sortOrder Int              @default(0)
+
+  appointmentSteps AppointmentStep[]
+
+  @@index([category])
+}
+
+// Plantilla de servicio configurable: secuencia de ProcessStep.
+model ServicePipeline {
+  id          String   @id @default(cuid())
+  serviceId   String?  @unique
+  name        String
+  description String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  service      Service?      @relation(fields: [serviceId], references: [id])
+  steps        ProcessStep[]
+  appointments Appointment[]
+}
+
+// Etapa dentro de un pipeline (ej. Baño, Secado, Corte), con la categoría de
+// estación que requiere y la duración estándar (talla M) escalada en runtime
+// por sizeMultipliers (o por SIZE_MULTIPLIER compartido si viene vacío).
+model ProcessStep {
+  id                  String           @id @default(cuid())
+  pipelineId          String
+  name                String
+  order               Int
+  stageType           ServiceStageType
+  standardDurationMin Int
+  sizeMultipliers     Json             @default("{}")
+
+  pipeline         ServicePipeline   @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  subProcesses     SubProcess[]
+  appointmentSteps AppointmentStep[]
+
+  @@index([pipelineId])
+}
+
+// Checklist de subpasos dentro de una etapa (ej. Desmotado -> Corte higiénico -> Vaciado de plantares).
+model SubProcess {
+  id            String @id @default(cuid())
+  processStepId String
+  name          String
+  order         Int
+
+  processStep ProcessStep              @relation(fields: [processStepId], references: [id], onDelete: Cascade)
+  completions AppointmentSubProcess[]
+
+  @@index([processStepId])
+}
+
+// Instancia real de un ProcessStep para una cita concreta: estación asignada,
+// tiempos reales y semáforo (reutiliza TimeLogStatus). Lo que alimenta al
+// Gantt del Dashboard TV en tiempo real.
+model AppointmentStep {
+  id            String  @id @default(cuid())
+  appointmentId String
+  processStepId String
+  workstationId String?
+  orderIndex    Int
+
+  standardDurationMin Int // ya escalado por talla al crearse
+  overrideDurationMin Int?
+
+  startedAt    DateTime?
+  endedAt      DateTime?
+  status       TimeLogStatus @default(ON_TRACK)
+  delaySeconds Int           @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  appointment           Appointment              @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  processStep           ProcessStep              @relation(fields: [processStepId], references: [id])
+  workstation           Workstation?             @relation(fields: [workstationId], references: [id])
+  subProcessCompletions AppointmentSubProcess[]
+
+  @@index([appointmentId])
+  @@index([workstationId])
+}
+
+// Marca de subproceso completado para una AppointmentStep concreta.
+model AppointmentSubProcess {
+  id                String    @id @default(cuid())
+  appointmentStepId String
+  subProcessId      String
+  completedAt       DateTime?
+
+  appointmentStep AppointmentStep @relation(fields: [appointmentStepId], references: [id], onDelete: Cascade)
+  subProcess      SubProcess      @relation(fields: [subProcessId], references: [id])
+
+  @@unique([appointmentStepId, subProcessId])
 }

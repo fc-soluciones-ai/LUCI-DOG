@@ -23,6 +23,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <Link href="/equipos" className="hover:text-slate-900">
               Equipos
             </Link>
+            <Link href="/admin/stations" className="hover:text-slate-900">
+              Estaciones
+            </Link>
+            <Link href="/admin/pipelines" className="hover:text-slate-900">
+              Pipelines
+            </Link>
+            <Link href="/dashboard-tv" target="_blank" className="hover:text-slate-900">
+              TV ↗
+            </Link>
           </nav>
         </div>
       </header>

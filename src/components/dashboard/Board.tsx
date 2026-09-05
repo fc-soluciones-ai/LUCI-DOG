@@ -12,6 +12,14 @@ import {
   startStageAction,
 } from '@/modules/time-tracking/actions'
 import { VoiceControl } from '@/components/voice/VoiceControl'
+import {
+  assignWorkstationAction,
+  checkInPipelineAppointmentAction,
+  finishAppointmentStepAction,
+  overrideAppointmentStepAction,
+  startAppointmentStepAction,
+  toggleSubProcessAction,
+} from '@/modules/control-center/actions'
 
 const STAGE_LABEL: Record<string, string> = {
   BATH: 'Baño',
@@ -169,7 +177,11 @@ export function Board({ initialBoard, groomerOptions }: Props) {
                   onSubmit={(e) => {
                     e.preventDefault()
                     const groomerId = new FormData(e.currentTarget).get('groomerId')
-                    if (groomerId) void checkInAction(appointment.id, String(groomerId)).then(refresh)
+                    if (!groomerId) return
+                    const action = appointment.pipelineId
+                      ? checkInPipelineAppointmentAction.bind(null, appointment.id)
+                      : checkInAction.bind(null, appointment.id, String(groomerId))
+                    void action(new FormData(e.currentTarget)).then(refresh)
                   }}
                   className="mt-3 flex gap-2"
                 >
@@ -184,9 +196,98 @@ export function Board({ initialBoard, groomerOptions }: Props) {
                     ))}
                   </select>
                   <button type="submit" className="rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white">
-                    Check-in
+                    Check-in {appointment.pipelineName ? `(${appointment.pipelineName})` : ''}
                   </button>
                 </form>
+              )}
+
+              {appointment.pipelineSteps.length > 0 && (
+                <div className="mt-3 space-y-2" onClick={(e) => e.stopPropagation()}>
+                  {appointment.pipelineSteps.map((step) => {
+                    const colorClass = step.startedAt
+                      ? (STATUS_COLOR[step.status] ?? 'border-slate-200 bg-slate-50 text-slate-700')
+                      : 'border-slate-200 bg-slate-50 text-slate-700'
+
+                    return (
+                      <div key={step.id} className={`rounded border px-3 py-2 ${colorClass}`}>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div>
+                            <p className="text-sm font-medium">{step.stageName}</p>
+                            <p className="text-xs">
+                              {step.startedAt
+                                ? `${formatSeconds(step.elapsedSeconds)} / ${step.standardDurationMin} min`
+                                : `Estándar: ${step.standardDurationMin} min`}
+                              {step.delaySeconds > 0 ? ` · +${formatSeconds(step.delaySeconds)} de atraso` : ''}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <select
+                              defaultValue={step.workstationId ?? ''}
+                              className="input text-xs"
+                              onChange={(e) => {
+                                if (e.target.value) void assignWorkstationAction(step.id, e.target.value).then(refresh)
+                              }}
+                            >
+                              <option value="" disabled>
+                                Estación
+                              </option>
+                              {board.workstations.map((w) => (
+                                <option key={w.id} value={w.id}>
+                                  {w.name}
+                                </option>
+                              ))}
+                            </select>
+                            {!step.endedAt && (
+                              <input
+                                type="number"
+                                placeholder="override min"
+                                className="w-24 rounded border border-slate-300 px-2 py-1 text-xs"
+                                onBlur={(e) => {
+                                  const value = Number(e.target.value)
+                                  if (value > 0) void overrideAppointmentStepAction(step.id, value).then(refresh)
+                                }}
+                              />
+                            )}
+                            {!step.startedAt && (
+                              <button
+                                onClick={() => void startAppointmentStepAction(step.id).then(refresh)}
+                                className="rounded bg-slate-900 px-2 py-1 text-xs font-medium text-white"
+                              >
+                                Iniciar
+                              </button>
+                            )}
+                            {step.startedAt && !step.endedAt && (
+                              <button
+                                onClick={() => void finishAppointmentStepAction(step.id).then(refresh)}
+                                className="rounded bg-slate-900 px-2 py-1 text-xs font-medium text-white"
+                              >
+                                Finalizar
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {step.subProcesses.length > 0 && (
+                          <ul className="mt-2 flex flex-wrap gap-2">
+                            {step.subProcesses.map((sub) => (
+                              <li key={sub.id}>
+                                <button
+                                  onClick={() => void toggleSubProcessAction(step.id, sub.id).then(refresh)}
+                                  className={`rounded-full px-2 py-0.5 text-xs ${
+                                    sub.done ? 'bg-green-600 text-white' : 'bg-white text-slate-600 border border-slate-300'
+                                  }`}
+                                >
+                                  {sub.done ? '✓ ' : ''}
+                                  {sub.name}
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
               )}
 
               {appointment.stages.length > 0 && (
