@@ -11,6 +11,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <Link href="/clientes" className="hover:text-slate-900">
               Clientes
             </Link>
+            <Link href="/mise-en-place" className="hover:text-slate-900">
+              Mise en Place
+            </Link>
           </nav>
         </div>
       </header>

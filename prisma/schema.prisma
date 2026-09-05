@@ -381,6 +381,9 @@ model Formula {
   name          String // ej. "Shampoo hipoalergénico 1:8"
   dilutionRatio String? // "1:8"
   instructions  String?
+  // ml estimados por aplicación en una mascota talla M — el planner de
+  // mise en place lo escala por tamaño (Módulo 3).
+  baseMlPerUse  Decimal  @default(30) @db.Decimal(8, 2)
 
   service Service? @relation(fields: [serviceId], references: [id])
   product Product  @relation(fields: [productId], references: [id])
