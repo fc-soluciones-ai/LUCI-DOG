@@ -6,6 +6,7 @@ export interface WhatsAppMessage {
   to: string
   templateName: string
   variables: Record<string, string>
+  mediaUrl?: string
 }
 
 export interface WhatsAppSendResult {
@@ -22,7 +23,8 @@ const TEMPLATES: Record<string, (vars: Record<string, string>) => string> = {
   REMINDER_24H: (v) => `Recordatorio: mañana ${v.date} es la cita de ${v.petName}. Te esperamos.`,
   LOCATION_22H: (v) => `Aquí la ubicación del salón para tu cita de mañana: ${v.mapUrl || 'contáctanos por este medio'}.`,
   DEPARTURE_15MIN: (v) => `${v.tutorName}, en 15 minutos comenzamos con ${v.petName}. ¡Puedes salir ahora!`,
-  RECEIPT: (v) => `El servicio de ${v.petName} ha terminado. Total: $${v.total}. Foto y forma de pago adjuntas.`,
+  RECEIPT: (v) =>
+    `¡Listo! El servicio de ${v.petName} ha terminado 🐾\n\nTotal a pagar: $${v.total}\n\nDatos de pago:\n${v.paymentInfo}\n\nEn cuanto realices tu pago, sube tu comprobante aquí para desbloquear tu próxima cita: ${v.proofLink}`,
   DELAY_ALERT: (v) =>
     `Aviso: tu cita para ${v.petName} podría retrasarse por el Efecto en Cadena de citas anteriores. Te avisaremos la nueva hora estimada, disculpa la demora.`,
 }
@@ -35,7 +37,8 @@ function renderTemplate(name: string, vars: Record<string, string>): string {
 
 class ConsoleWhatsAppProvider implements WhatsAppProvider {
   async send(message: WhatsAppMessage): Promise<WhatsAppSendResult> {
-    console.log(`[WhatsApp:dev -> ${message.to}] ${renderTemplate(message.templateName, message.variables)}`)
+    const mediaLine = message.mediaUrl ? `\n[imagen adjunta: ${message.mediaUrl}]` : ''
+    console.log(`[WhatsApp:dev -> ${message.to}] ${renderTemplate(message.templateName, message.variables)}${mediaLine}`)
     return { providerMessageId: `console-${Date.now()}` }
   }
 }
@@ -53,6 +56,9 @@ class TwilioWhatsAppProvider implements WhatsAppProvider {
       From: `whatsapp:${this.fromNumber}`,
       Body: renderTemplate(message.templateName, message.variables),
     })
+    if (message.mediaUrl) {
+      body.append('MediaUrl', message.mediaUrl)
+    }
 
     const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${this.accountSid}/Messages.json`, {
       method: 'POST',
