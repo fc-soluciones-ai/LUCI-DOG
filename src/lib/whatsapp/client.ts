@@ -23,6 +23,8 @@ const TEMPLATES: Record<string, (vars: Record<string, string>) => string> = {
   LOCATION_22H: (v) => `Aquí la ubicación del salón para tu cita de mañana: ${v.mapUrl || 'contáctanos por este medio'}.`,
   DEPARTURE_15MIN: (v) => `${v.tutorName}, en 15 minutos comenzamos con ${v.petName}. ¡Puedes salir ahora!`,
   RECEIPT: (v) => `El servicio de ${v.petName} ha terminado. Total: $${v.total}. Foto y forma de pago adjuntas.`,
+  DELAY_ALERT: (v) =>
+    `Aviso: tu cita para ${v.petName} podría retrasarse por el Efecto en Cadena de citas anteriores. Te avisaremos la nueva hora estimada, disculpa la demora.`,
 }
 
 function renderTemplate(name: string, vars: Record<string, string>): string {
@@ -91,4 +93,5 @@ export const WHATSAPP_STAGE_TEMPLATE: Record<string, string> = {
   T_MINUS_22_HOURS_LOCATION: 'LOCATION_22H',
   T_MINUS_15_MIN_DEPARTURE: 'DEPARTURE_15MIN',
   POST_SERVICE_RECEIPT: 'RECEIPT',
+  DELAY_ALERT: 'DELAY_ALERT',
 }

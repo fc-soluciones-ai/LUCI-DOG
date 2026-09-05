@@ -8,6 +8,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <div className="mx-auto flex max-w-5xl items-center gap-6 px-4 py-3">
           <span className="font-semibold text-slate-900">GroomingOS</span>
           <nav className="flex gap-4 text-sm text-slate-600">
+            <Link href="/dashboard" className="hover:text-slate-900">
+              Dashboard
+            </Link>
             <Link href="/clientes" className="hover:text-slate-900">
               Clientes
             </Link>
