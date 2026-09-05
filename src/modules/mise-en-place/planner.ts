@@ -1,27 +1,6 @@
-import { AppointmentStatus, InstrumentStatus, InstrumentType, PrepItemType, ServiceStageType } from '@prisma/client'
+import { AppointmentStatus, InstrumentStatus, InstrumentType, PrepItemType } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-
-const SIZE_MULTIPLIER: Record<string, number> = {
-  XS: 0.5,
-  S: 0.75,
-  M: 1,
-  L: 1.5,
-  XL: 2,
-}
-
-function sizeMultiplier(sizeCategory: string | null): number {
-  if (!sizeCategory) return 1
-  return SIZE_MULTIPLIER[sizeCategory] ?? 1
-}
-
-// Instrumental que típicamente requiere cada etapa de servicio. Se usa para
-// proyectar demanda de cuchillas/peines/tijeras/rastrillos sin necesitar una
-// "receta" configurada manualmente por servicio.
-const STAGE_INSTRUMENT_TYPES: Partial<Record<ServiceStageType, InstrumentType[]>> = {
-  HAIRCUT: [InstrumentType.SCISSORS, InstrumentType.COMB_GUIDE, InstrumentType.BLADE],
-  DESHEDDING: [InstrumentType.RAKE],
-  FINISHING: [InstrumentType.SCISSORS],
-}
+import { STAGE_INSTRUMENT_TYPES, sizeMultiplier } from '@/modules/shared/grooming'
 
 const INSTRUMENT_TYPE_LABEL: Record<InstrumentType, string> = {
   BLADE: 'Cuchillas',

@@ -1,4 +1,4 @@
-import { InstrumentType, PrismaClient, Role, ServiceStageType } from '@prisma/client'
+import { EquipmentType, InstrumentType, PrismaClient, Role, ServiceStageType } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
@@ -92,6 +92,11 @@ const GROOMERS: Array<{ fullName: string; phone: string }> = [
   { fullName: 'Luis Fernández', phone: '+5215500000002' },
 ]
 
+const EQUIPMENT: Array<{ name: string; type: EquipmentType; purchaseCost: number; usefulLifeMonths: number }> = [
+  { name: 'Secador de gabinete #1', type: EquipmentType.DRYER, purchaseCost: 8500, usefulLifeMonths: 60 },
+  { name: 'Turbina de fuerza #1', type: EquipmentType.TURBINE, purchaseCost: 4200, usefulLifeMonths: 48 },
+]
+
 const INSTRUMENTS: Array<{ name: string; type: InstrumentType; expectedLifeHours: number }> = [
   { name: 'Tijera recta 7"', type: InstrumentType.SCISSORS, expectedLifeHours: 500 },
   { name: 'Peine guía 6mm', type: InstrumentType.COMB_GUIDE, expectedLifeHours: 800 },
@@ -151,6 +156,14 @@ async function main() {
     instrumentsCreated++
   }
 
+  let equipmentCreated = 0
+  for (const item of EQUIPMENT) {
+    const exists = await prisma.equipment.findFirst({ where: { name: item.name } })
+    if (exists) continue
+    await prisma.equipment.create({ data: { ...item, purchaseDate: new Date() } })
+    equipmentCreated++
+  }
+
   let groomersCreated = 0
   for (const groomer of GROOMERS) {
     const exists = await prisma.staff.findFirst({ where: { fullName: groomer.fullName } })
@@ -160,7 +173,7 @@ async function main() {
   }
 
   console.log(
-    `Seed completo: ${servicesCreated} servicios, ${productsCreated} productos, ${formulasCreated} fórmulas, ${instrumentsCreated} instrumentos, ${groomersCreated} groomers creados (el resto ya existía).`
+    `Seed completo: ${servicesCreated} servicios, ${productsCreated} productos, ${formulasCreated} fórmulas, ${instrumentsCreated} instrumentos, ${equipmentCreated} equipos, ${groomersCreated} groomers creados (el resto ya existía).`
   )
 }
 

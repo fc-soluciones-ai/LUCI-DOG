@@ -1,0 +1,103 @@
+'use server'
+
+import { revalidatePath } from 'next/cache'
+import { EquipmentStatus, EquipmentType, InstrumentType, ProductUnit } from '@prisma/client'
+import { createEquipment, flagEquipmentStatus, logMaintenance } from './equipment'
+import { createInstrument, markInstrumentSharpened, retireInstrument } from './instruments'
+import { createProduct, restockProduct } from './products'
+import { closeServiceInventory } from './serviceClosure'
+
+function num(formData: FormData, key: string): number | undefined {
+  const value = formData.get(key)
+  if (typeof value !== 'string' || value.trim() === '') return undefined
+  return Number(value)
+}
+
+export async function createProductAction(formData: FormData) {
+  await createProduct({
+    name: String(formData.get('name')),
+    unit: formData.get('unit') as ProductUnit,
+    stockCurrent: num(formData, 'stockCurrent') ?? 0,
+    stockMin: num(formData, 'stockMin') ?? 0,
+    costPerUnit: num(formData, 'costPerUnit') ?? 0,
+    supplier: (formData.get('supplier') as string) || undefined,
+  })
+  revalidatePath('/inventario')
+}
+
+export async function restockProductAction(productId: string, formData: FormData) {
+  const quantity = num(formData, 'quantity')
+  if (!quantity || quantity <= 0) return
+  await restockProduct(productId, quantity)
+  revalidatePath('/inventario')
+}
+
+export async function createInstrumentAction(formData: FormData) {
+  await createInstrument({
+    name: String(formData.get('name')),
+    type: formData.get('type') as InstrumentType,
+    expectedLifeHours: num(formData, 'expectedLifeHours'),
+    expectedLifeUses: num(formData, 'expectedLifeUses'),
+  })
+  revalidatePath('/inventario')
+}
+
+export async function markInstrumentSharpenedAction(instrumentId: string) {
+  await markInstrumentSharpened(instrumentId)
+  revalidatePath('/inventario')
+}
+
+export async function retireInstrumentAction(instrumentId: string) {
+  await retireInstrument(instrumentId)
+  revalidatePath('/inventario')
+}
+
+export async function createEquipmentAction(formData: FormData) {
+  await createEquipment({
+    name: String(formData.get('name')),
+    type: formData.get('type') as EquipmentType,
+    purchaseCost: num(formData, 'purchaseCost') ?? 0,
+    usefulLifeMonths: num(formData, 'usefulLifeMonths') ?? 12,
+  })
+  revalidatePath('/equipos')
+}
+
+export async function logMaintenanceAction(equipmentId: string, formData: FormData) {
+  const description = String(formData.get('description') ?? '')
+  if (!description) return
+  const cost = num(formData, 'cost')
+  const nextDueInDays = num(formData, 'nextDueInDays') ?? 90
+  await logMaintenance(equipmentId, description, cost, nextDueInDays)
+  revalidatePath('/equipos')
+}
+
+export async function flagEquipmentStatusAction(equipmentId: string, status: EquipmentStatus) {
+  await flagEquipmentStatus(equipmentId, status)
+  revalidatePath('/equipos')
+}
+
+/** Envía el cierre de inventario de una cita completada (Módulo 5). */
+export async function closeServiceInventoryAction(appointmentId: string, formData: FormData) {
+  const formulaEntries: { formulaId: string; mlUsed: number }[] = []
+  const instrumentEntries: { instrumentId: string; minutesUsed: number }[] = []
+
+  for (const [key, value] of formData.entries()) {
+    if (key.startsWith('formula_')) {
+      const formulaId = key.replace('formula_', '')
+      const mlUsed = Number(value)
+      if (mlUsed > 0) formulaEntries.push({ formulaId, mlUsed })
+    }
+
+    if (key.startsWith('instrument_')) {
+      const type = key.replace('instrument_', '')
+      const instrumentId = String(value)
+      if (!instrumentId) continue
+      const minutesUsed = Number(formData.get(`minutes_${type}`) ?? 0)
+      if (minutesUsed > 0) instrumentEntries.push({ instrumentId, minutesUsed })
+    }
+  }
+
+  await closeServiceInventory(appointmentId, formulaEntries, instrumentEntries)
+  revalidatePath('/inventario')
+  revalidatePath('/mascotas')
+}
