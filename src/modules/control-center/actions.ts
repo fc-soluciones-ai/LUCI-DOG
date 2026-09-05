@@ -93,30 +93,30 @@ export async function deleteSubProcessAction(subProcessId: string) {
 export async function checkInPipelineAppointmentAction(appointmentId: string, formData: FormData) {
   const groomerId = (formData.get('groomerId') as string) || undefined
   await checkInPipelineAppointment(appointmentId, groomerId)
-  revalidatePath('/dashboard')
+  revalidatePath('/groomer')
 }
 
 export async function assignWorkstationAction(appointmentStepId: string, workstationId: string) {
   await assignWorkstation(appointmentStepId, workstationId)
-  revalidatePath('/dashboard')
+  revalidatePath('/groomer')
 }
 
 export async function startAppointmentStepAction(appointmentStepId: string) {
   await startAppointmentStep(appointmentStepId)
-  revalidatePath('/dashboard')
+  revalidatePath('/groomer')
 }
 
 export async function finishAppointmentStepAction(appointmentStepId: string) {
   await finishAppointmentStep(appointmentStepId)
-  revalidatePath('/dashboard')
+  revalidatePath('/groomer')
 }
 
 export async function overrideAppointmentStepAction(appointmentStepId: string, minutes: number) {
   await overrideAppointmentStepDuration(appointmentStepId, minutes)
-  revalidatePath('/dashboard')
+  revalidatePath('/groomer')
 }
 
 export async function toggleSubProcessAction(appointmentStepId: string, subProcessId: string) {
   await toggleSubProcess(appointmentStepId, subProcessId)
-  revalidatePath('/dashboard')
+  revalidatePath('/groomer')
 }

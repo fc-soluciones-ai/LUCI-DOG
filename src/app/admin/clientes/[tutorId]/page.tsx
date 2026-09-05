@@ -20,7 +20,7 @@ export default async function TutorDetailPage({ params }: { params: Promise<{ tu
 
   return (
     <div>
-      <Link href="/clientes" className="text-sm text-slate-500 hover:text-slate-900">
+      <Link href="/admin/clientes" className="text-sm text-slate-500 hover:text-slate-900">
         ← Clientes
       </Link>
 
@@ -43,7 +43,7 @@ export default async function TutorDetailPage({ params }: { params: Promise<{ tu
           {tutor.pets.map((pet) => (
             <Link
               key={pet.id}
-              href={`/mascotas/${pet.id}`}
+              href={`/admin/mascotas/${pet.id}`}
               className="rounded-lg border border-slate-200 bg-white p-4 hover:border-slate-400"
             >
               <p className="font-medium text-slate-900">{pet.name}</p>

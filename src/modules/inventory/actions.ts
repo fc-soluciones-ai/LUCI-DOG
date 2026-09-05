@@ -22,14 +22,14 @@ export async function createProductAction(formData: FormData) {
     costPerUnit: num(formData, 'costPerUnit') ?? 0,
     supplier: (formData.get('supplier') as string) || undefined,
   })
-  revalidatePath('/inventario')
+  revalidatePath('/admin/inventario')
 }
 
 export async function restockProductAction(productId: string, formData: FormData) {
   const quantity = num(formData, 'quantity')
   if (!quantity || quantity <= 0) return
   await restockProduct(productId, quantity)
-  revalidatePath('/inventario')
+  revalidatePath('/admin/inventario')
 }
 
 export async function createInstrumentAction(formData: FormData) {
@@ -39,17 +39,17 @@ export async function createInstrumentAction(formData: FormData) {
     expectedLifeHours: num(formData, 'expectedLifeHours'),
     expectedLifeUses: num(formData, 'expectedLifeUses'),
   })
-  revalidatePath('/inventario')
+  revalidatePath('/admin/inventario')
 }
 
 export async function markInstrumentSharpenedAction(instrumentId: string) {
   await markInstrumentSharpened(instrumentId)
-  revalidatePath('/inventario')
+  revalidatePath('/admin/inventario')
 }
 
 export async function retireInstrumentAction(instrumentId: string) {
   await retireInstrument(instrumentId)
-  revalidatePath('/inventario')
+  revalidatePath('/admin/inventario')
 }
 
 export async function createEquipmentAction(formData: FormData) {
@@ -59,7 +59,7 @@ export async function createEquipmentAction(formData: FormData) {
     purchaseCost: num(formData, 'purchaseCost') ?? 0,
     usefulLifeMonths: num(formData, 'usefulLifeMonths') ?? 12,
   })
-  revalidatePath('/equipos')
+  revalidatePath('/admin/equipos')
 }
 
 export async function logMaintenanceAction(equipmentId: string, formData: FormData) {
@@ -68,12 +68,12 @@ export async function logMaintenanceAction(equipmentId: string, formData: FormDa
   const cost = num(formData, 'cost')
   const nextDueInDays = num(formData, 'nextDueInDays') ?? 90
   await logMaintenance(equipmentId, description, cost, nextDueInDays)
-  revalidatePath('/equipos')
+  revalidatePath('/admin/equipos')
 }
 
 export async function flagEquipmentStatusAction(equipmentId: string, status: EquipmentStatus) {
   await flagEquipmentStatus(equipmentId, status)
-  revalidatePath('/equipos')
+  revalidatePath('/admin/equipos')
 }
 
 /** Envía el cierre de inventario de una cita completada (Módulo 5). */
@@ -98,6 +98,6 @@ export async function closeServiceInventoryAction(appointmentId: string, formDat
   }
 
   await closeServiceInventory(appointmentId, formulaEntries, instrumentEntries)
-  revalidatePath('/inventario')
-  revalidatePath('/mascotas')
+  revalidatePath('/admin/inventario')
+  revalidatePath('/admin/mascotas')
 }

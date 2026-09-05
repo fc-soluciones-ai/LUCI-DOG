@@ -19,23 +19,23 @@ export async function closeServiceAction(appointmentId: string, formData: FormDa
   const finishedPhotoUrl = (formData.get('finishedPhotoUrl') as string) || undefined
 
   await closeServiceAndInvoice({ appointmentId, items, finishedPhotoUrl, paymentMethod, markPaidNow })
-  revalidatePath('/facturacion')
+  revalidatePath('/admin/facturacion')
 }
 
 export async function verifyProofAction(invoiceId: string, formData: FormData) {
   const verifiedBy = String(formData.get('verifiedBy') ?? '').trim()
   if (!verifiedBy) return
   await verifyProof(invoiceId, verifiedBy)
-  revalidatePath('/facturacion')
-  revalidatePath('/clientes')
+  revalidatePath('/admin/facturacion')
+  revalidatePath('/admin/clientes')
 }
 
 export async function manuallyUnblockAction(tutorId: string, formData: FormData) {
   const unblockedBy = String(formData.get('unblockedBy') ?? '').trim()
   if (!unblockedBy) return
   await manuallyUnblockTutor(tutorId, unblockedBy)
-  revalidatePath('/facturacion')
-  revalidatePath('/clientes')
+  revalidatePath('/admin/facturacion')
+  revalidatePath('/admin/clientes')
 }
 
 export async function submitProofAction(invoiceId: string, formData: FormData) {

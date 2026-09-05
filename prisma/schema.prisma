@@ -188,6 +188,7 @@ model Tutor {
   appointments Appointment[]
   invoices     Invoice[]
   notifications NotificationLog[]
+  profile      Profile?
 
   @@index([phoneWhatsApp])
 }
@@ -257,6 +258,7 @@ model Staff {
   appointments Appointment[]
   timeLogs     TimeLog[]
   maintenanceLogsPerformed MaintenanceLog[]
+  profile      Profile?
 }
 
 // Catálogo de servicios con tiempos y precios base (por tamaño/raza vía ServicePricing)
@@ -756,4 +758,62 @@ model AppointmentSubProcess {
   subProcess      SubProcess      @relation(fields: [subProcessId], references: [id])
 
   @@unique([appointmentStepId, subProcessId])
+}
+
+// ----------------------------------------------------------------------------
+// AUTENTICACIÓN, RBAC Y AUDITORÍA (Supabase Auth)
+//
+// Profile.id NO tiene una relación Prisma formal hacia auth.users (esa tabla
+// vive en el schema `auth`, gestionado por Supabase, no por nuestras
+// migraciones) — pero comparte el mismo UUID. La integridad referencial hacia
+// auth.users(id) se declara a nivel de base de datos en el script SQL de RLS
+// (supabase/rls.sql), vía `references auth.users(id) on delete cascade`.
+//
+// Nuestro servidor Next.js siempre accede a Postgres vía Prisma usando el rol
+// `postgres` (dueño de las tablas), que por diseño de Postgres EVADE RLS.
+// Las políticas de RLS solo restringen accesos directos con la clave
+// publicable (anon/authenticated) — hoy en día, únicamente el canal de
+// Supabase Realtime que consume el Dashboard TV / futuros portales.
+// ----------------------------------------------------------------------------
+
+enum UserRole {
+  ADMIN
+  GROOMER
+  CLIENT
+  TV_DISPLAY
+}
+
+model Profile {
+  id        String   @id @db.Uuid // = auth.users.id (UUID de Supabase, no autogenerado por Prisma)
+  email     String   @unique
+  fullName  String
+  role      UserRole
+  staffId   String?  @unique // vínculo a Staff para ADMIN/GROOMER
+  tutorId   String?  @unique // vínculo a Tutor para CLIENT
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  staff     Staff?     @relation(fields: [staffId], references: [id])
+  tutor     Tutor?     @relation(fields: [tutorId], references: [id])
+  auditLogs AuditLog[]
+
+  @@index([role])
+}
+
+// Registro de trazabilidad: quién hizo qué, sobre qué entidad (Módulo de auditoría).
+model AuditLog {
+  id             String   @id @default(cuid())
+  actorProfileId String?  @db.Uuid
+  action         String // "CREATE" | "UPDATE" | "DELETE" | "SOFT_DELETE" | "RESTORE"
+  entityType     String // ej. "Pet", "Invoice", "Workstation"
+  entityId       String
+  changes        Json?
+  createdAt      DateTime @default(now())
+
+  actor Profile? @relation(fields: [actorProfileId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([actorProfileId])
+  @@index([createdAt])
 }

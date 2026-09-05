@@ -23,8 +23,8 @@ export async function createTutorAction(formData: FormData) {
     email: str(formData, 'email'),
     address: str(formData, 'address'),
   })
-  revalidatePath('/clientes')
-  redirect(`/clientes/${tutor.id}`)
+  revalidatePath('/admin/clientes')
+  redirect(`/admin/clientes/${tutor.id}`)
 }
 
 export async function createPetAction(tutorId: string, formData: FormData) {
@@ -35,7 +35,7 @@ export async function createPetAction(tutorId: string, formData: FormData) {
     coatType: str(formData, 'coatType'),
     weightEstimated: num(formData, 'weightEstimated'),
   })
-  revalidatePath(`/clientes/${tutorId}`)
+  revalidatePath(`/admin/clientes/${tutorId}`)
 }
 
 export async function updateBiometricsAction(petId: string, formData: FormData) {
@@ -46,7 +46,7 @@ export async function updateBiometricsAction(petId: string, formData: FormData) 
     weightEstimated: num(formData, 'weightEstimated'),
     weightReal: num(formData, 'weightReal'),
   })
-  revalidatePath(`/mascotas/${petId}`)
+  revalidatePath(`/admin/mascotas/${petId}`)
 }
 
 export async function upsertClinicalRecordAction(petId: string, formData: FormData) {
@@ -64,7 +64,7 @@ export async function upsertClinicalRecordAction(petId: string, formData: FormDa
     behavioralNotes: str(formData, 'behavioralNotes'),
     medicalNotes: str(formData, 'medicalNotes'),
   })
-  revalidatePath(`/mascotas/${petId}`)
+  revalidatePath(`/admin/mascotas/${petId}`)
 }
 
 export async function addPetPhotoAction(petId: string, formData: FormData) {
@@ -72,10 +72,10 @@ export async function addPetPhotoAction(petId: string, formData: FormData) {
   if (!url) return
   const type = String(formData.get('type') ?? 'PROFILE')
   await addPetPhoto(petId, { url, type })
-  revalidatePath(`/mascotas/${petId}`)
+  revalidatePath(`/admin/mascotas/${petId}`)
 }
 
 export async function deletePetPhotoAction(petId: string, photoId: string, _formData: FormData) {
   await deletePetPhoto(photoId)
-  revalidatePath(`/mascotas/${petId}`)
+  revalidatePath(`/admin/mascotas/${petId}`)
 }

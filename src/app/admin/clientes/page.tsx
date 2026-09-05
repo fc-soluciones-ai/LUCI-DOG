@@ -27,7 +27,7 @@ export default async function ClientesPage({ searchParams }: { searchParams: Pro
     <div>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-slate-900">Clientes</h1>
-        <Link href="/clientes/new" className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white">
+        <Link href="/admin/clientes/new" className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white">
           Nuevo cliente
         </Link>
       </div>
@@ -41,7 +41,7 @@ export default async function ClientesPage({ searchParams }: { searchParams: Pro
         {tutors.map((tutor) => (
           <Link
             key={tutor.id}
-            href={`/clientes/${tutor.id}`}
+            href={`/admin/clientes/${tutor.id}`}
             className="flex items-center justify-between p-4 hover:bg-slate-50"
           >
             <div>

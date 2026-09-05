@@ -16,10 +16,10 @@ export async function createFixedExpenseAction(formData: FormData) {
     frequency: formData.get('frequency') as ExpenseFrequency,
     effectiveFrom: formData.get('effectiveFrom') ? new Date(String(formData.get('effectiveFrom'))) : new Date(),
   })
-  revalidatePath('/reportes')
+  revalidatePath('/admin/reportes')
 }
 
 export async function setFixedExpenseActiveAction(id: string, active: boolean) {
   await setFixedExpenseActive(id, active)
-  revalidatePath('/reportes')
+  revalidatePath('/admin/reportes')
 }

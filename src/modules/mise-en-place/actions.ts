@@ -5,5 +5,5 @@ import { generateDailyPrepPlan } from './planner'
 
 export async function regeneratePlanAction(forDateIso: string) {
   await generateDailyPrepPlan(new Date(forDateIso))
-  revalidatePath('/mise-en-place')
+  revalidatePath('/admin/mise-en-place')
 }

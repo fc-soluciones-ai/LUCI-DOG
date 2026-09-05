@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { NotificationStatus, TimeLogSource } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { getWhatsAppProvider } from '@/lib/whatsapp/client'
+import { getWhatsAppProvider } from '@/lib/whatsapp/adapter'
 import {
   checkInAppointment,
   finishStage,
@@ -17,27 +17,27 @@ import { parseVoiceCommand } from './voiceParser'
 
 export async function checkInAction(appointmentId: string, groomerId: string) {
   await checkInAppointment(appointmentId, groomerId)
-  revalidatePath('/dashboard')
+  revalidatePath('/groomer')
 }
 
 export async function startStageAction(timeLogId: string) {
   await startStage(timeLogId, TimeLogSource.MANUAL)
-  revalidatePath('/dashboard')
+  revalidatePath('/groomer')
 }
 
 export async function finishStageAction(timeLogId: string) {
   await finishStage(timeLogId, TimeLogSource.MANUAL)
-  revalidatePath('/dashboard')
+  revalidatePath('/groomer')
 }
 
 export async function overrideStageAction(timeLogId: string, minutes: number) {
   await overrideStageDuration(timeLogId, minutes)
-  revalidatePath('/dashboard')
+  revalidatePath('/groomer')
 }
 
 export async function reorderStagesAction(appointmentId: string, orderedIds: string[]) {
   await reorderStages(appointmentId, orderedIds)
-  revalidatePath('/dashboard')
+  revalidatePath('/groomer')
 }
 
 export interface VoiceCommandResult {
@@ -67,7 +67,7 @@ export async function runVoiceCommandAction(
     }
 
     await startStage(stage.id, TimeLogSource.VOICE)
-    revalidatePath('/dashboard')
+    revalidatePath('/groomer')
     return { ok: true, message: `Iniciado: ${command.stageType} de ${command.petName}` }
   }
 
@@ -80,7 +80,7 @@ export async function runVoiceCommandAction(
       return { ok: false, message: 'La cita enfocada no tiene ninguna etapa activa.' }
     }
     await finishStage(active.id, TimeLogSource.VOICE)
-    revalidatePath('/dashboard')
+    revalidatePath('/groomer')
     return { ok: true, message: 'Etapa finalizada.' }
   }
 
@@ -109,5 +109,5 @@ export async function sendDelayNotificationAction(notificationId: string) {
     data: { status: NotificationStatus.SENT, sentAt: new Date(), providerMessageId: result.providerMessageId },
   })
 
-  revalidatePath('/dashboard')
+  revalidatePath('/groomer')
 }

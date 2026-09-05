@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import type { PipelineBoard } from '@/modules/control-center/pipelineBoard'
-import { useRealtimeAppointmentSteps } from '@/hooks/useRealtimeAppointmentSteps'
+import { useRealtimeAppointmentSteps, type RealtimeAuthSession } from '@/hooks/useRealtimeAppointmentSteps'
 
 const STAGE_CATEGORY_LABEL: Record<string, string> = {
   BATH: 'Baño',
@@ -54,9 +54,10 @@ function liveStatus(elapsedSeconds: number, standardDurationMin: number): keyof 
 
 interface Props {
   initialBoard: PipelineBoard
+  tvSession: RealtimeAuthSession | null
 }
 
-export function TvBoard({ initialBoard }: Props) {
+export function TvBoard({ initialBoard, tvSession }: Props) {
   const [board, setBoard] = useState(initialBoard)
   // `now` arranca en null (server-safe) y solo se llena tras montar en el
   // cliente — evita mismatches de hidratación por usar `new Date()` al renderizar.
@@ -68,7 +69,7 @@ export function TvBoard({ initialBoard }: Props) {
   }
 
   // Señal instantánea vía Supabase Realtime (WebSockets) para refrescar sin recargar.
-  useRealtimeAppointmentSteps(refresh)
+  useRealtimeAppointmentSteps(refresh, tvSession)
 
   // Red de seguridad: reconciliación periódica por si el canal Realtime se cae.
   useEffect(() => {

@@ -1,6 +1,6 @@
 import { NotificationStatus } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { WHATSAPP_STAGE_TEMPLATE, getWhatsAppProvider } from '@/lib/whatsapp/client'
+import { WHATSAPP_STAGE_TEMPLATE, getWhatsAppProvider } from '@/lib/whatsapp/adapter'
 
 /**
  * Envía las notificaciones de WhatsApp cuya hora programada ya llegó.

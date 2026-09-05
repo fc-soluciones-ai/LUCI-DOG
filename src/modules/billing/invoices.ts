@@ -1,6 +1,6 @@
 import { AppointmentStatus, BillingStatus, NotificationStage, NotificationStatus, type PaymentMethod } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { getWhatsAppProvider } from '@/lib/whatsapp/client'
+import { getWhatsAppProvider } from '@/lib/whatsapp/adapter'
 
 /** Citas COMPLETED sin factura todavía — pendientes de cerrar (Módulo 6). */
 export async function getPendingClosures() {

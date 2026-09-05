@@ -28,7 +28,7 @@ export default async function PetProfilePage({ params }: { params: Promise<{ pet
   return (
     <div className="space-y-10">
       <div>
-        <Link href={`/clientes/${pet.tutorId}`} className="text-sm text-slate-500 hover:text-slate-900">
+        <Link href={`/admin/clientes/${pet.tutorId}`} className="text-sm text-slate-500 hover:text-slate-900">
           ← {pet.tutor.fullName}
         </Link>
         <h1 className="mt-2 text-2xl font-semibold text-slate-900">{pet.name}</h1>
