@@ -265,6 +265,8 @@ model Service {
   basePrice           Decimal  @db.Decimal(10, 2)
   standardDurationMin Int
   active              Boolean  @default(true)
+  imageUrl            String? // URL pública en Supabase Storage (bucket services-images)
+  imagePath           String? // path interno del bucket, para poder reemplazar/eliminar el archivo
 
   stageTemplates    ServiceStageTemplate[]
   appointments      Appointment[]

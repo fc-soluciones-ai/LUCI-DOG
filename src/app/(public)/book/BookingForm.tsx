@@ -8,12 +8,16 @@ interface Service {
   name: string
   basePrice: number
   standardDurationMin: number
+  imageUrl: string | null
 }
 
 export function BookingForm({ services }: { services: Service[] }) {
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [consent, setConsent] = useState(false)
+  const [selectedServiceId, setSelectedServiceId] = useState('')
+
+  const selectedService = services.find((service) => service.id === selectedServiceId)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -97,7 +101,13 @@ export function BookingForm({ services }: { services: Service[] }) {
 
       <fieldset className="space-y-3">
         <legend className="font-medium text-slate-900">Servicio y horario</legend>
-        <select name="serviceId" required defaultValue="" className="input">
+        <select
+          name="serviceId"
+          required
+          defaultValue=""
+          className="input"
+          onChange={(event) => setSelectedServiceId(event.target.value)}
+        >
           <option value="" disabled>
             Selecciona un servicio
           </option>
@@ -107,6 +117,14 @@ export function BookingForm({ services }: { services: Service[] }) {
             </option>
           ))}
         </select>
+        {selectedService?.imageUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={selectedService.imageUrl}
+            alt={selectedService.name}
+            className="h-32 w-full rounded-lg object-cover"
+          />
+        )}
         <input name="scheduledStart" type="datetime-local" required className="input" />
       </fieldset>
 

@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 export default async function BookPage() {
   const services = await prisma.service.findMany({
     where: { active: true },
-    select: { id: true, name: true, basePrice: true, standardDurationMin: true },
+    select: { id: true, name: true, basePrice: true, standardDurationMin: true, imageUrl: true },
     orderBy: { name: 'asc' },
   })
 

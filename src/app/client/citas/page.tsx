@@ -39,13 +39,27 @@ export default async function ClientCitasPage() {
         {appointments.length === 0 && <p className="p-4 text-sm text-slate-500">Aún no tienes citas registradas.</p>}
         {appointments.map((appointment) => (
           <div key={appointment.id} className="flex items-center justify-between gap-3 p-4">
-            <div>
-              <p className="font-medium text-slate-900">
-                {appointment.pet.name} — {appointment.service.name}
-              </p>
-              <p className="text-sm text-slate-500">
-                {appointment.scheduledStart.toLocaleString('es-CR', { dateStyle: 'medium', timeStyle: 'short' })}
-              </p>
+            <div className="flex min-w-0 items-center gap-3">
+              {appointment.service.imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={appointment.service.imageUrl}
+                  alt={appointment.service.name}
+                  className="h-10 w-10 shrink-0 rounded-lg object-cover"
+                />
+              ) : (
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-lg">
+                  ✂️
+                </div>
+              )}
+              <div className="min-w-0">
+                <p className="font-medium text-slate-900">
+                  {appointment.pet.name} — {appointment.service.name}
+                </p>
+                <p className="text-sm text-slate-500">
+                  {appointment.scheduledStart.toLocaleString('es-CR', { dateStyle: 'medium', timeStyle: 'short' })}
+                </p>
+              </div>
             </div>
             <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_COLOR[appointment.status]}`}>
               {STATUS_LABEL[appointment.status] ?? appointment.status}
