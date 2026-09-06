@@ -1,10 +1,10 @@
 'use server'
 
-import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { SensitivityLevel } from '@prisma/client'
 import { createPetForTutor, createTutor, softDeleteTutor, updateTutor } from './tutors'
 import { addPetPhoto, deactivatePet, deletePetPhoto, updatePetBiometrics, upsertClinicalRecord } from './pets'
+import { createClientUser } from '@/modules/auth/users'
 
 function str(formData: FormData, key: string): string | undefined {
   const value = formData.get(key)
@@ -16,15 +16,66 @@ function num(formData: FormData, key: string): number | undefined {
   return value ? Number(value) : undefined
 }
 
-export async function createTutorAction(formData: FormData) {
-  const tutor = await createTutor({
-    fullName: String(formData.get('fullName')),
-    phoneWhatsApp: String(formData.get('phoneWhatsApp')),
-    email: str(formData, 'email'),
-    address: str(formData, 'address'),
-  })
+export interface CreateTutorState {
+  ok: boolean
+  message?: string
+  tutorId?: string
+  tempPassword?: string
+  email?: string
+}
+
+/**
+ * Crea el cliente y, opcionalmente en el mismo paso, su acceso al Portal del
+ * Cliente (Tutor + Profile + usuario de Supabase Auth) — evita el flujo
+ * previo de crear el tutor y luego tener que ir a su ficha a "darle acceso"
+ * por separado. Si falla la parte del acceso (ej. correo ya usado en Auth),
+ * el tutor de todos modos queda creado — no se pierde el registro; el admin
+ * puede reintentar el acceso desde la ficha.
+ */
+export async function createTutorWithAccessAction(
+  _prevState: CreateTutorState,
+  formData: FormData
+): Promise<CreateTutorState> {
+  const fullName = String(formData.get('fullName') ?? '').trim()
+  const phoneWhatsApp = String(formData.get('phoneWhatsApp') ?? '').trim()
+  const email = str(formData, 'email')
+  const address = str(formData, 'address')
+  const enableAccess = formData.get('enableAccess') === 'on'
+  const manualPassword = str(formData, 'manualPassword')
+
+  if (!fullName || !phoneWhatsApp) {
+    return { ok: false, message: 'Nombre y WhatsApp son obligatorios.' }
+  }
+  if (enableAccess && !email) {
+    return { ok: false, message: 'Para habilitar el acceso al portal, ingresa un correo.' }
+  }
+
+  const tutor = await createTutor({ fullName, phoneWhatsApp, email, address })
   revalidatePath('/admin/clientes')
-  redirect(`/admin/clientes/${tutor.id}`)
+
+  if (!enableAccess) {
+    return { ok: true, tutorId: tutor.id, message: 'Cliente creado.' }
+  }
+
+  try {
+    const result = await createClientUser(tutor.id, manualPassword)
+    return {
+      ok: true,
+      tutorId: tutor.id,
+      tempPassword: result.tempPassword,
+      email: result.email,
+      message: `Cliente creado con acceso al portal para ${result.email}. Comparte este password de forma segura — no se volverá a mostrar.`,
+    }
+  } catch (error) {
+    console.error('[createTutorWithAccessAction] falló crear el acceso al portal:', error)
+    return {
+      ok: true,
+      tutorId: tutor.id,
+      message: `El cliente se creó, pero no se pudo habilitar el acceso al portal: ${
+        error instanceof Error ? error.message : 'error desconocido'
+      }. Puedes intentarlo de nuevo desde su ficha.`,
+    }
+  }
 }
 
 export async function updateTutorAction(tutorId: string, formData: FormData) {

@@ -6,6 +6,8 @@ import { listActiveCustomerTags } from '@/modules/config/customerTags'
 import { updateTutorTagsAction } from '@/modules/config/actions'
 import { DataTableActions } from '@/components/admin/DataTableActions'
 import { GivePortalAccessButton } from '@/components/admin/GivePortalAccessButton'
+import { ResetPasswordButton } from '@/components/admin/ResetPasswordButton'
+import { SendResetLinkButton } from '@/components/admin/SendResetLinkButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -90,6 +92,12 @@ export default async function TutorDetailPage({ params }: { params: Promise<{ tu
             canCreate={Boolean(tutor.email)}
           />
         </div>
+        {tutor.profile && (
+          <div className="mt-3 flex flex-wrap items-start gap-x-6 gap-y-2 border-t border-slate-100 pt-3 text-sm">
+            <ResetPasswordButton profileId={tutor.profile.id} />
+            <SendResetLinkButton profileId={tutor.profile.id} />
+          </div>
+        )}
       </div>
 
       <div className="mt-8 rounded-lg border border-slate-200 bg-white p-4">

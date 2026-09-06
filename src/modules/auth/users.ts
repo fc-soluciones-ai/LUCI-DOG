@@ -105,11 +105,33 @@ export async function setProfileActive(profileId: string, active: boolean) {
 }
 
 /**
- * Da de alta el acceso al Portal del Cliente para un tutor existente (Fase 2).
- * No hay autoservicio (sin OTP/email transaccional propio): el admin genera la
- * cuenta desde la ficha del tutor y comparte el password temporal por WhatsApp.
+ * Envía el correo de restablecimiento de contraseña de Supabase Auth al
+ * dueño de la cuenta — alternativa a que el admin genere/comparta un
+ * password temporal manualmente. El enlace lleva a /auth/confirm, que
+ * intercambia el código por una sesión y redirige a /actualizar-password.
  */
-export async function createClientUser(tutorId: string) {
+export async function sendPasswordResetLink(profileId: string) {
+  const profile = await prisma.profile.findUniqueOrThrow({ where: { id: profileId } })
+  const admin = createSupabaseAdminClient()
+
+  const { error } = await admin.auth.resetPasswordForEmail(profile.email, {
+    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? ''}/auth/confirm?next=/actualizar-password`,
+  })
+  if (error) throw new Error(`No se pudo enviar el enlace: ${error.message}`)
+
+  return { email: profile.email }
+}
+
+/**
+ * Da de alta el acceso al Portal del Cliente para un tutor existente — desde
+ * el formulario unificado de "Nuevo cliente" (con manualPassword) o desde el
+ * botón "Dar acceso al portal" en la ficha de un tutor que ya existía sin
+ * cuenta (sin manualPassword, se genera una temporal). No hay autoservicio de
+ * alta (sin OTP/email transaccional propio): el admin comparte el password
+ * temporal por WhatsApp, o el cliente puede pedir su propio enlace de
+ * restablecimiento después desde /login.
+ */
+export async function createClientUser(tutorId: string, manualPassword?: string) {
   const tutor = await prisma.tutor.findUniqueOrThrow({ where: { id: tutorId }, include: { profile: true } })
 
   if (tutor.profile) {
@@ -119,7 +141,7 @@ export async function createClientUser(tutorId: string) {
     throw new Error('El tutor necesita un correo guardado antes de poder darle acceso al portal.')
   }
 
-  const tempPassword = randomTempPassword()
+  const tempPassword = manualPassword?.trim() || randomTempPassword()
   const admin = createSupabaseAdminClient()
 
   const { data, error } = await admin.auth.admin.createUser({

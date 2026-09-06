@@ -5,7 +5,15 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { homePathForRole } from './profile'
-import { createClientUser, createStaffUser, deleteProfileHard, resetProfilePassword, setProfileActive, updateProfile } from './users'
+import {
+  createClientUser,
+  createStaffUser,
+  deleteProfileHard,
+  resetProfilePassword,
+  sendPasswordResetLink,
+  setProfileActive,
+  updateProfile,
+} from './users'
 
 export async function signInAction(formData: FormData) {
   const email = String(formData.get('email') ?? '').trim()
@@ -138,4 +146,83 @@ export async function createClientUserAction(
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message : 'No se pudo crear el acceso.' }
   }
+}
+
+/** Botón "Enviar enlace de restablecimiento" en la ficha de un cliente con acceso al portal. */
+export async function sendPasswordResetLinkAction(
+  profileId: string,
+  _prevState: CreateUserActionState,
+  _formData: FormData
+): Promise<CreateUserActionState> {
+  try {
+    const result = await sendPasswordResetLink(profileId)
+    return { ok: true, message: `Enlace de restablecimiento enviado a ${result.email}.` }
+  } catch (error) {
+    console.error('[sendPasswordResetLinkAction] falló el envío del enlace:', error)
+    return { ok: false, message: error instanceof Error ? error.message : 'No se pudo enviar el enlace.' }
+  }
+}
+
+/** Formulario público "¿Olvidaste tu contraseña?" en /olvide-password. */
+export async function requestPasswordResetAction(
+  _prevState: CreateUserActionState,
+  formData: FormData
+): Promise<CreateUserActionState> {
+  const email = String(formData.get('email') ?? '').trim()
+  if (!email) return { ok: false, message: 'Ingresa tu correo.' }
+
+  const supabase = await createSupabaseServerClient()
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${process.env.NEXT_PUBLIC_APP_URL ?? ''}/auth/confirm?next=/actualizar-password`,
+  })
+  if (error) console.error('[requestPasswordResetAction] falló resetPasswordForEmail:', error)
+
+  // Mismo mensaje exista o no la cuenta — evita filtrar qué correos están registrados.
+  return { ok: true, message: 'Si el correo existe en el sistema, te enviamos un enlace para restablecer tu contraseña.' }
+}
+
+export interface UpdatePasswordState {
+  ok: boolean
+  message?: string
+}
+
+/** Formulario "Nueva contraseña" en /actualizar-password, tras el enlace de recuperación. */
+export async function updatePasswordAction(
+  _prevState: UpdatePasswordState,
+  formData: FormData
+): Promise<UpdatePasswordState> {
+  const password = String(formData.get('password') ?? '')
+  const confirmPassword = String(formData.get('confirmPassword') ?? '')
+
+  if (password.length < 8) return { ok: false, message: 'La contraseña debe tener al menos 8 caracteres.' }
+  if (password !== confirmPassword) return { ok: false, message: 'Las contraseñas no coinciden.' }
+
+  const supabase = await createSupabaseServerClient()
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+  if (!session) return { ok: false, message: 'El enlace expiró o no es válido. Solicita uno nuevo desde "¿Olvidaste tu contraseña?".' }
+
+  // Esta página solo debe aceptar una sesión que vino del enlace de
+  // recuperación (/auth/confirm) — no cualquier sesión normal ya activa en el
+  // navegador. Sin este chequeo, alguien con acceso físico a un dispositivo
+  // donde el dueño ya tiene sesión abierta podría cambiarle la contraseña
+  // desde aquí sin conocer la actual. El JWT de Supabase marca el método de
+  // login en "amr" — para una sesión de recuperación incluye "recovery".
+  const payload = JSON.parse(Buffer.from(session.access_token.split('.')[1], 'base64').toString('utf-8')) as {
+    amr?: { method: string }[]
+  }
+  const isRecoverySession = Array.isArray(payload.amr) && payload.amr.some((entry) => entry.method === 'recovery')
+  if (!isRecoverySession) {
+    return { ok: false, message: 'Este enlace ya no es válido. Solicita uno nuevo desde "¿Olvidaste tu contraseña?".' }
+  }
+
+  const { error } = await supabase.auth.updateUser({ password })
+  if (error) {
+    console.error('[updatePasswordAction] falló updateUser:', error)
+    return { ok: false, message: 'No se pudo actualizar la contraseña. Intenta de nuevo.' }
+  }
+
+  await supabase.auth.signOut()
+  redirect(`/login?success=${encodeURIComponent('Contraseña actualizada. Inicia sesión con tu nueva contraseña.')}`)
 }
