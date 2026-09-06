@@ -581,6 +581,15 @@ model EquipmentCategory {
   equipment Equipment[]
 }
 
+// Configuración general de un solo registro (id fijo "default"), editable desde
+// /admin/configuracion — reemplaza variables de entorno para datos que el admin
+// debe poder actualizar sin depender de un despliegue.
+model AppSettings {
+  id              String   @id @default("default")
+  paymentInfoText String? // datos de SINPE Móvil / cuenta bancaria mostrados al cliente al pagar
+  updatedAt       DateTime @updatedAt
+}
+
 model MaintenanceLog {
   id            String   @id @default(cuid())
   equipmentId   String

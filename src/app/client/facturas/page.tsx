@@ -2,6 +2,7 @@ import { requireRole } from '@/modules/auth/profile'
 import { listClientInvoices } from '@/modules/client/portal'
 import { InvoicePaymentModal } from '@/components/client/InvoicePaymentModal'
 import { formatCRC } from '@/lib/currency'
+import { getPaymentInfoText } from '@/modules/config/settings'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,7 +25,7 @@ const NEEDS_PAYMENT = new Set(['PENDING_PROOF', 'OVERDUE', 'REJECTED'])
 export default async function ClientFacturasPage() {
   const profile = await requireRole(['CLIENT'])
   const invoices = await listClientInvoices(profile.tutorId!)
-  const paymentInfoText = process.env.PAYMENT_INFO_TEXT ?? 'Contacta al salón para los datos de pago.'
+  const paymentInfoText = await getPaymentInfoText()
 
   return (
     <div>

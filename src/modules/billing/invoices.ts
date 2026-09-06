@@ -2,6 +2,7 @@ import { AppointmentStatus, BillingStatus, NotificationStage, NotificationStatus
 import { prisma } from '@/lib/prisma'
 import { getWhatsAppProvider } from '@/lib/whatsapp/adapter'
 import { deletePaymentReceipt, uploadPaymentReceipt } from '@/lib/supabase/storage'
+import { getPaymentInfoText } from '@/modules/config/settings'
 
 /** Citas COMPLETED sin factura todavía — pendientes de cerrar (Módulo 6). */
 export async function getPendingClosures() {
@@ -71,6 +72,7 @@ export async function closeServiceAndInvoice(input: CloseServiceInput) {
 
   const proofLink = `${process.env.NEXT_PUBLIC_APP_URL ?? ''}/pagar/${invoice.id}`
   const provider = getWhatsAppProvider()
+  const paymentInfoText = await getPaymentInfoText()
 
   const result = await provider.send({
     to: appointment.tutor.phoneWhatsApp,
@@ -79,7 +81,7 @@ export async function closeServiceAndInvoice(input: CloseServiceInput) {
     variables: {
       petName: appointment.pet.name,
       total: subtotal.toFixed(2),
-      paymentInfo: input.markPaidNow ? 'Pagado en el salón. ¡Gracias!' : process.env.PAYMENT_INFO_TEXT ?? 'Contacta al salón para los datos de pago.',
+      paymentInfo: input.markPaidNow ? 'Pagado en el salón. ¡Gracias!' : paymentInfoText,
       proofLink: input.markPaidNow ? '' : proofLink,
     },
   })

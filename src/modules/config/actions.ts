@@ -6,6 +6,7 @@ import {
   setEquipmentCategoryActive,
   updateEquipmentCategory,
 } from './equipmentCategories'
+import { updatePaymentInfoText } from './settings'
 
 function num(formData: FormData, key: string): number | undefined {
   const value = formData.get(key)
@@ -33,4 +34,11 @@ export async function deleteEquipmentCategoryAction(id: string) {
   await setEquipmentCategoryActive(id, false)
   revalidatePath('/admin/configuracion')
   revalidatePath('/admin/equipos')
+}
+
+export async function updatePaymentInfoTextAction(formData: FormData) {
+  const text = String(formData.get('paymentInfoText') ?? '').trim()
+  await updatePaymentInfoText(text)
+  revalidatePath('/admin/configuracion')
+  revalidatePath('/client/facturas')
 }

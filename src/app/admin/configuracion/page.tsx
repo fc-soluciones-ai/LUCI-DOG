@@ -1,15 +1,17 @@
 import { listEquipmentCategories } from '@/modules/config/equipmentCategories'
+import { getRawPaymentInfoText } from '@/modules/config/settings'
 import {
   createEquipmentCategoryAction,
   deleteEquipmentCategoryAction,
   updateEquipmentCategoryAction,
+  updatePaymentInfoTextAction,
 } from '@/modules/config/actions'
 import { DataTableActions } from '@/components/admin/DataTableActions'
 
 export const dynamic = 'force-dynamic'
 
 export default async function ConfiguracionPage() {
-  const categories = await listEquipmentCategories()
+  const [categories, paymentInfoText] = await Promise.all([listEquipmentCategories(), getRawPaymentInfoText()])
 
   return (
     <div className="space-y-8">
@@ -82,6 +84,26 @@ export default async function ConfiguracionPage() {
             </button>
           </form>
         </details>
+      </section>
+
+      <section>
+        <h2 className="text-lg font-medium text-slate-900">Datos de pago</h2>
+        <p className="mt-1 text-sm text-slate-500">
+          Se muestra a los clientes al pagar (portal del cliente) y en el recibo de WhatsApp cuando el
+          cobro requiere transferencia/SINPE.
+        </p>
+        <form action={updatePaymentInfoTextAction} className="mt-3 max-w-lg space-y-2">
+          <textarea
+            name="paymentInfoText"
+            defaultValue={paymentInfoText}
+            rows={3}
+            placeholder="Ej. SINPE Móvil: 8888-8888 (Nombre del titular)"
+            className="input w-full"
+          />
+          <button type="submit" className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white">
+            Guardar datos de pago
+          </button>
+        </form>
       </section>
 
       <section>
