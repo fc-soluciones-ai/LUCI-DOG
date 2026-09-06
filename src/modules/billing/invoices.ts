@@ -17,7 +17,7 @@ export async function getPendingClosures() {
 export async function getInvoicesNeedingAttention() {
   return prisma.invoice.findMany({
     where: { status: { in: [BillingStatus.PENDING_PROOF, BillingStatus.OVERDUE] } },
-    include: { tutor: true, appointment: { include: { pet: true } } },
+    include: { tutor: true, appointment: { include: { pet: true } }, items: true },
     orderBy: { createdAt: 'desc' },
   })
 }

@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { homePathForRole } from './profile'
-import { createClientUser, createStaffUser, setProfileActive, updateProfile } from './users'
+import { createClientUser, createStaffUser, deleteProfileHard, resetProfilePassword, setProfileActive, updateProfile } from './users'
 
 export async function signInAction(formData: FormData) {
   const email = String(formData.get('email') ?? '').trim()
@@ -57,23 +57,53 @@ export async function createStaffUserAction(
   const fullName = String(formData.get('fullName') ?? '').trim()
   const email = String(formData.get('email') ?? '').trim()
   const role = formData.get('role') === 'ADMIN' ? 'ADMIN' : 'GROOMER'
+  const sendInvite = formData.get('sendInvite') === 'on'
+  const manualPassword = String(formData.get('manualPassword') ?? '').trim()
 
   if (!fullName || !email) {
     return { ok: false, message: 'Nombre y correo son obligatorios.' }
   }
 
   try {
-    const result = await createStaffUser({ fullName, email, role })
+    const result = await createStaffUser({ fullName, email, role, sendInvite, manualPassword: manualPassword || undefined })
     revalidatePath('/admin/usuarios')
+
+    if (result.invited) {
+      return { ok: true, message: `Invitación enviada por correo a ${email}. Definirá su propia contraseña al aceptarla.` }
+    }
+
     return {
       ok: true,
-      message: `Cuenta creada para ${email}. Comparte este password temporal de forma segura — no se volverá a mostrar.`,
+      message: `Cuenta creada para ${email}. Comparte este password de forma segura — no se volverá a mostrar.`,
       tempPassword: result.tempPassword,
       email: result.email,
     }
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message : 'Error al crear la cuenta.' }
   }
+}
+
+export async function resetProfilePasswordAction(
+  profileId: string,
+  _prevState: CreateUserActionState,
+  _formData: FormData
+): Promise<CreateUserActionState> {
+  try {
+    const result = await resetProfilePassword(profileId)
+    return {
+      ok: true,
+      message: `Contraseña restablecida para ${result.email}. Comparte este password temporal de forma segura — no se volverá a mostrar.`,
+      tempPassword: result.tempPassword,
+      email: result.email,
+    }
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : 'No se pudo restablecer la contraseña.' }
+  }
+}
+
+export async function deleteProfileAction(profileId: string) {
+  await deleteProfileHard(profileId)
+  revalidatePath('/admin/usuarios')
 }
 
 export async function setProfileActiveAction(profileId: string, active: boolean) {

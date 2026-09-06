@@ -1,12 +1,13 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
 import { createStaffUserAction, type CreateUserActionState } from '@/modules/auth/actions'
 
 const initialState: CreateUserActionState = { ok: false, message: '' }
 
 export function CreateUserForm() {
   const [state, formAction, pending] = useActionState(createStaffUserAction, initialState)
+  const [sendInvite, setSendInvite] = useState(false)
 
   return (
     <form action={formAction} className="mt-3 grid max-w-lg gap-2 sm:grid-cols-2">
@@ -16,6 +17,25 @@ export function CreateUserForm() {
         <option value="GROOMER">Groomer</option>
         <option value="ADMIN">Admin</option>
       </select>
+
+      <label className="col-span-full flex items-center gap-2 text-sm text-slate-700">
+        <input
+          type="checkbox"
+          name="sendInvite"
+          checked={sendInvite}
+          onChange={(e) => setSendInvite(e.target.checked)}
+        />
+        Enviar invitación por correo (el usuario define su propia contraseña)
+      </label>
+
+      {!sendInvite && (
+        <input
+          name="manualPassword"
+          placeholder="Password inicial manual (opcional, si no se genera uno aleatorio)"
+          className="input col-span-full"
+        />
+      )}
+
       <button
         type="submit"
         disabled={pending}

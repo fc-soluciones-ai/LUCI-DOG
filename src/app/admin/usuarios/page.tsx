@@ -1,7 +1,8 @@
 import { listProfiles } from '@/modules/auth/users'
-import { setProfileActiveAction, updateProfileAction } from '@/modules/auth/actions'
+import { deleteProfileAction, setProfileActiveAction, updateProfileAction } from '@/modules/auth/actions'
 import { CreateUserForm } from '@/components/admin/CreateUserForm'
 import { DataTableActions } from '@/components/admin/DataTableActions'
+import { ResetPasswordButton } from '@/components/admin/ResetPasswordButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,30 +45,39 @@ export default async function UsuariosPage() {
                 </button>
               </form>
               {(profile.role === 'ADMIN' || profile.role === 'GROOMER') && (
-                <DataTableActions
-                  editLabel="Editar Perfil"
-                  editTitle={`Editar perfil — ${profile.fullName}`}
-                  editAction={updateProfileAction.bind(null, profile.id)}
-                  editFields={
-                    <>
-                      <label className="text-sm text-slate-700">
-                        Nombre completo
-                        <input name="fullName" required defaultValue={profile.fullName} className="input mt-1 w-full" />
-                      </label>
-                      <label className="text-sm text-slate-700">
-                        Correo
-                        <input name="email" type="email" required defaultValue={profile.email} className="input mt-1 w-full" />
-                      </label>
-                      <label className="text-sm text-slate-700">
-                        Rol
-                        <select name="role" defaultValue={profile.role === 'ADMIN' ? 'ADMIN' : 'GROOMER'} className="input mt-1 w-full">
-                          <option value="ADMIN">Administrador</option>
-                          <option value="GROOMER">Groomer</option>
-                        </select>
-                      </label>
-                    </>
-                  }
-                />
+                <>
+                  <ResetPasswordButton profileId={profile.id} />
+                  <DataTableActions
+                    editLabel="Editar Perfil"
+                    editTitle={`Editar perfil — ${profile.fullName}`}
+                    editAction={updateProfileAction.bind(null, profile.id)}
+                    editFields={
+                      <>
+                        <label className="text-sm text-slate-700">
+                          Nombre completo
+                          <input name="fullName" required defaultValue={profile.fullName} className="input mt-1 w-full" />
+                        </label>
+                        <label className="text-sm text-slate-700">
+                          Correo
+                          <input name="email" type="email" required defaultValue={profile.email} className="input mt-1 w-full" />
+                        </label>
+                        <label className="text-sm text-slate-700">
+                          Rol
+                          <select name="role" defaultValue={profile.role === 'ADMIN' ? 'ADMIN' : 'GROOMER'} className="input mt-1 w-full">
+                            <option value="ADMIN">Administrador</option>
+                            <option value="GROOMER">Groomer</option>
+                          </select>
+                        </label>
+                      </>
+                    }
+                    deleteLabel="Eliminar cuenta"
+                    deleteConfirmText={`¿Eliminar definitivamente la cuenta de "${profile.fullName}"? Esto borra su acceso de Supabase Auth de forma irreversible (distinto de solo desactivarla). El historial de citas y mantenimientos asociado a este groomer se conserva.`}
+                    onDelete={async () => {
+                      'use server'
+                      await deleteProfileAction(profile.id)
+                    }}
+                  />
+                </>
               )}
             </div>
           </div>

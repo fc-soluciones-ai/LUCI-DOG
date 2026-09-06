@@ -1,7 +1,39 @@
 import { getInvoicesNeedingAttention, getPendingClosures } from '@/modules/billing/invoices'
 import { closeServiceAction, manuallyUnblockAction, rejectProofAction, verifyProofAction } from '@/modules/billing/actions'
+import { getBranding } from '@/modules/config/branding'
+import { getPaymentInfoText } from '@/modules/config/settings'
+import { formatCurrency } from '@/lib/currency'
 
 export const dynamic = 'force-dynamic'
+
+function buildWhatsAppBreakdownLink(invoice: {
+  id: string
+  total: unknown
+  items: { description: string; amount: unknown }[]
+  tutor: { fullName: string; phoneWhatsApp: string }
+  appointment: { pet: { name: string } }
+}, currencyCode: string, paymentInfoText: string) {
+  const proofLink = `${process.env.NEXT_PUBLIC_APP_URL ?? ''}/pagar/${invoice.id}`
+  const breakdown = invoice.items
+    .map((item) => `- ${item.description}: ${formatCurrency(Number(item.amount), currencyCode)}`)
+    .join('\n')
+
+  const message = [
+    `Hola ${invoice.tutor.fullName}! Aquí el desglose del servicio de ${invoice.appointment.pet.name}:`,
+    '',
+    breakdown,
+    '',
+    `Total: ${formatCurrency(Number(invoice.total), currencyCode)}`,
+    '',
+    'Datos de pago:',
+    paymentInfoText,
+    '',
+    `Sube tu comprobante aquí para desbloquear tu próxima cita: ${proofLink}`,
+  ].join('\n')
+
+  const phoneDigits = invoice.tutor.phoneWhatsApp.replace(/\D/g, '')
+  return `https://wa.me/${phoneDigits}?text=${encodeURIComponent(message)}`
+}
 
 const BILLING_LABEL: Record<string, string> = {
   PENDING_PROOF: 'Comprobante pendiente',
@@ -18,9 +50,11 @@ const BILLING_COLOR: Record<string, string> = {
 }
 
 export default async function FacturacionPage() {
-  const [pendingClosures, invoicesNeedingAttention] = await Promise.all([
+  const [pendingClosures, invoicesNeedingAttention, branding, paymentInfoText] = await Promise.all([
     getPendingClosures(),
     getInvoicesNeedingAttention(),
+    getBranding(),
+    getPaymentInfoText(),
   ])
 
   return (
@@ -107,7 +141,7 @@ export default async function FacturacionPage() {
                       {invoice.tutor.fullName} — {invoice.appointment.pet.name}
                     </p>
                     <p className="text-sm text-slate-500">
-                      Total: ${Number(invoice.total).toFixed(2)} ·{' '}
+                      Total: {formatCurrency(Number(invoice.total), branding.currencyCode)} ·{' '}
                       {invoice.proofUrl ? (
                         <a href={invoice.proofUrl} target="_blank" rel="noreferrer" className="text-slate-700 underline">
                           Ver comprobante subido
@@ -123,6 +157,14 @@ export default async function FacturacionPage() {
                 </div>
 
                 <div className="mt-3 flex flex-wrap gap-2">
+                  <a
+                    href={buildWhatsAppBreakdownLink(invoice, branding.currencyCode, paymentInfoText)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded bg-green-100 px-3 py-1.5 text-xs font-medium text-green-800"
+                  >
+                    Enviar Desglose por WhatsApp
+                  </a>
                   <form action={verifyProofAction.bind(null, invoice.id)} className="flex gap-2">
                     <input name="verifiedBy" required placeholder="Tu nombre" className="input w-40 text-xs" />
                     <button type="submit" className="rounded bg-slate-900 px-3 py-1.5 text-xs font-medium text-white">

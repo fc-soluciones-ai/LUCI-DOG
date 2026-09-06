@@ -17,45 +17,87 @@ export interface CreateStaffUserInput {
   fullName: string
   email: string
   role: 'ADMIN' | 'GROOMER'
+  sendInvite?: boolean
+  manualPassword?: string
 }
 
 /**
- * Crea la cuenta de Supabase Auth (con password temporal) + su Staff + Profile,
- * en una sola operación (Módulo de administración de usuarios).
+ * Crea la cuenta de Supabase Auth + su Staff + Profile, en una sola operación
+ * (Módulo de administración de usuarios). Por defecto genera un password
+ * temporal para compartir manualmente; si `sendInvite` está activo, en vez de
+ * crear el usuario directamente le envía un correo de invitación de Supabase
+ * (el usuario define su propio password al aceptarla, no hay temporal que mostrar).
  */
 export async function createStaffUser(input: CreateStaffUserInput) {
-  const tempPassword = randomTempPassword()
   const admin = createSupabaseAdminClient()
+  const role = input.role === 'ADMIN' ? Role.ADMIN : Role.GROOMER
+  const userRole = input.role === 'ADMIN' ? UserRole.ADMIN : UserRole.GROOMER
 
-  const { data, error } = await admin.auth.admin.createUser({
-    email: input.email,
-    password: tempPassword,
-    email_confirm: true,
-    user_metadata: { fullName: input.fullName, role: input.role },
-  })
+  let userId: string
+  let tempPassword: string | undefined
 
-  if (error || !data.user) {
-    throw new Error(error?.message ?? 'No se pudo crear la cuenta en Supabase Auth.')
+  if (input.sendInvite) {
+    const { data, error } = await admin.auth.admin.inviteUserByEmail(input.email, {
+      data: { fullName: input.fullName, role: input.role },
+    })
+    if (error || !data.user) {
+      throw new Error(error?.message ?? 'No se pudo enviar la invitación por correo.')
+    }
+    userId = data.user.id
+  } else {
+    tempPassword = input.manualPassword?.trim() || randomTempPassword()
+    const { data, error } = await admin.auth.admin.createUser({
+      email: input.email,
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: { fullName: input.fullName, role: input.role },
+    })
+    if (error || !data.user) {
+      throw new Error(error?.message ?? 'No se pudo crear la cuenta en Supabase Auth.')
+    }
+    userId = data.user.id
   }
 
-  const staff = await prisma.staff.create({
-    data: {
-      fullName: input.fullName,
-      role: input.role === 'ADMIN' ? Role.ADMIN : Role.GROOMER,
-    },
-  })
+  const staff = await prisma.staff.create({ data: { fullName: input.fullName, role } })
 
   await prisma.profile.create({
     data: {
-      id: data.user.id,
+      id: userId,
       email: input.email,
       fullName: input.fullName,
-      role: input.role === 'ADMIN' ? UserRole.ADMIN : UserRole.GROOMER,
+      role: userRole,
       staffId: staff.id,
     },
   })
 
-  return { tempPassword, email: input.email }
+  return { tempPassword, email: input.email, invited: Boolean(input.sendInvite) }
+}
+
+/** Genera un nuevo password temporal para una cuenta existente (Restablecer contraseña). */
+export async function resetProfilePassword(profileId: string) {
+  const profile = await prisma.profile.findUniqueOrThrow({ where: { id: profileId } })
+  const tempPassword = randomTempPassword()
+  const admin = createSupabaseAdminClient()
+
+  const { error } = await admin.auth.admin.updateUserById(profileId, { password: tempPassword })
+  if (error) throw new Error(`No se pudo restablecer la contraseña: ${error.message}`)
+
+  return { tempPassword, email: profile.email }
+}
+
+/**
+ * Elimina definitivamente el acceso de una cuenta de staff: borra el usuario
+ * de Supabase Auth y su Profile. A diferencia del toggle activo/inactivo (que
+ * solo bloquea el login), esto es irreversible. El registro de Staff se
+ * conserva intacto para no romper el historial de citas/mantenimientos ya
+ * asociado a ese groomer.
+ */
+export async function deleteProfileHard(profileId: string) {
+  const admin = createSupabaseAdminClient()
+  const { error } = await admin.auth.admin.deleteUser(profileId)
+  if (error) throw new Error(`No se pudo eliminar la cuenta en Supabase Auth: ${error.message}`)
+
+  await prisma.profile.delete({ where: { id: profileId } })
 }
 
 export async function setProfileActive(profileId: string, active: boolean) {
