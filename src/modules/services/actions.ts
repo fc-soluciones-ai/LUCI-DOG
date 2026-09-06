@@ -52,6 +52,7 @@ export async function upsertServiceWithImage(
       imageUpdate = { imageUrl: null, imagePath: null }
     }
   } catch (error) {
+    console.error('[upsertServiceWithImage] falló el procesamiento de la imagen:', error)
     return { ok: false, message: error instanceof Error ? error.message : 'No se pudo procesar la imagen.' }
   }
 

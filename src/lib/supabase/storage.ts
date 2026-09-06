@@ -2,7 +2,9 @@ import 'server-only'
 import { randomUUID } from 'node:crypto'
 import { createSupabaseAdminClient } from './admin'
 
-const MAX_SIZE_BYTES = 5 * 1024 * 1024
+// Debe coincidir con MAX_UPLOAD_BYTES en src/lib/client/imageUpload.ts y con
+// experimental.serverActions.bodySizeLimit en next.config.mjs.
+const MAX_SIZE_BYTES = 4 * 1024 * 1024
 
 const IMAGE_TYPES: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -27,18 +29,26 @@ async function uploadToBucket(bucket: string, file: File, allowedTypes: Record<s
     throw new Error(`Formato no soportado. Usa ${label}.`)
   }
   if (file.size > MAX_SIZE_BYTES) {
-    throw new Error('El archivo supera el tamaño máximo de 5 MB.')
+    throw new Error(`El archivo supera el tamaño máximo de ${MAX_SIZE_BYTES / (1024 * 1024)} MB.`)
   }
 
   const path = `${randomUUID()}.${extension}`
-  const admin = createSupabaseAdminClient()
+
+  let admin: ReturnType<typeof createSupabaseAdminClient>
+  try {
+    admin = createSupabaseAdminClient()
+  } catch (error) {
+    console.error(`[storage:${bucket}] Cliente de Supabase Storage no disponible:`, error)
+    throw new Error('El almacenamiento no está disponible en este momento. Intenta de nuevo en unos minutos.')
+  }
 
   const { error } = await admin.storage.from(bucket).upload(path, file, {
     contentType: file.type,
     upsert: false,
   })
   if (error) {
-    throw new Error(`No se pudo subir el archivo: ${error.message}`)
+    console.error(`[storage:${bucket}] Falló la subida:`, error)
+    throw new Error('No se pudo subir el archivo. Intenta de nuevo en unos minutos.')
   }
 
   const { data } = admin.storage.from(bucket).getPublicUrl(path)

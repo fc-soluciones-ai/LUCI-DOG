@@ -119,6 +119,7 @@ export async function uploadPaymentReceiptAction(
   try {
     await submitProofWithUpload(invoiceId, file, paymentMethod, referenceNumber)
   } catch (error) {
+    console.error('[uploadPaymentReceiptAction] falló la subida del comprobante:', error)
     return { ok: false, message: error instanceof Error ? error.message : 'No se pudo subir el comprobante.' }
   }
 
@@ -172,6 +173,7 @@ export async function uploadPetPhotoAction(
   try {
     await setPetProfilePhoto(petId, file)
   } catch (error) {
+    console.error('[uploadPetPhotoAction] falló la subida de la foto:', error)
     return { ok: false, message: error instanceof Error ? error.message : 'No se pudo subir la foto.' }
   }
 

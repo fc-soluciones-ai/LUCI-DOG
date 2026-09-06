@@ -24,6 +24,7 @@ const initialState: UpsertServiceState = { ok: false }
 /** Modal de alta/edición de un servicio, con carga de imagen (drag-and-drop + preview). */
 export function ServiceFormModal({ mode, service }: Props) {
   const [open, setOpen] = useState(false)
+  const [preparingImage, setPreparingImage] = useState(false)
   const [state, formAction, pending] = useActionState(
     upsertServiceWithImage.bind(null, service?.id ?? null),
     initialState
@@ -55,7 +56,7 @@ export function ServiceFormModal({ mode, service }: Props) {
         title={mode === 'create' ? 'Nuevo servicio' : `Editar servicio — ${service?.name}`}
       >
         <form action={formAction} className="grid gap-3">
-          <ImageUploader initialImageUrl={service?.imageUrl} />
+          <ImageUploader initialImageUrl={service?.imageUrl} onPreparingChange={setPreparingImage} />
 
           <label className="text-sm text-slate-700">
             Nombre del servicio
@@ -105,7 +106,7 @@ export function ServiceFormModal({ mode, service }: Props) {
             </button>
             <button
               type="submit"
-              disabled={pending}
+              disabled={pending || preparingImage}
               className="rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
             >
               {pending ? 'Guardando...' : 'Guardar'}

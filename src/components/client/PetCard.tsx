@@ -1,8 +1,9 @@
 'use client'
 
-import { useActionState, useRef } from 'react'
+import { useActionState, useRef, useState, type ChangeEvent } from 'react'
 import Link from 'next/link'
 import { uploadPetPhotoAction, type UploadPetPhotoState } from '@/modules/client/actions'
+import { compressImageIfNeeded, replaceInputFile, validateUploadSize } from '@/lib/client/imageUpload'
 
 interface Pet {
   id: string
@@ -18,7 +19,30 @@ const initialState: UploadPetPhotoState = { ok: false }
 export function PetCard({ pet }: { pet: Pet }) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [state, formAction, pending] = useActionState(uploadPetPhotoAction.bind(null, pet.id), initialState)
+  const [clientError, setClientError] = useState<string | null>(null)
+  const [preparing, setPreparing] = useState(false)
   const photoUrl = pet.photos[0]?.url ?? null
+
+  async function handleFileSelected(event: ChangeEvent<HTMLInputElement>) {
+    const input = event.currentTarget
+    const file = input.files?.[0]
+    setClientError(null)
+    if (!file) return
+
+    setPreparing(true)
+    const prepared = await compressImageIfNeeded(file)
+    setPreparing(false)
+
+    const sizeError = validateUploadSize(prepared)
+    if (sizeError) {
+      setClientError(`${sizeError} Intenta con una foto más liviana.`)
+      input.value = ''
+      return
+    }
+
+    if (prepared !== file) replaceInputFile(input, prepared)
+    input.form?.requestSubmit()
+  }
 
   return (
     <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
@@ -40,11 +64,11 @@ export function PetCard({ pet }: { pet: Pet }) {
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            disabled={pending}
+            disabled={pending || preparing}
             className="absolute bottom-2 right-2 flex h-9 w-9 items-center justify-center rounded-full bg-white text-lg shadow disabled:opacity-50"
             aria-label="Cambiar foto"
           >
-            {pending ? '…' : '📷'}
+            {pending ? '…' : preparing ? '⏳' : '📷'}
           </button>
           <input
             ref={inputRef}
@@ -53,7 +77,7 @@ export function PetCard({ pet }: { pet: Pet }) {
             accept="image/jpeg,image/png,image/webp"
             capture="environment"
             className="hidden"
-            onChange={(event) => event.currentTarget.form?.requestSubmit()}
+            onChange={handleFileSelected}
           />
         </form>
       </div>
@@ -63,7 +87,8 @@ export function PetCard({ pet }: { pet: Pet }) {
         <p className="text-sm text-slate-500">{pet.breed}</p>
       </Link>
 
-      {state.message && !state.ok && <p className="px-3 pb-2 text-xs text-red-600">{state.message}</p>}
+      {clientError && <p className="px-3 pb-2 text-xs text-red-600">{clientError}</p>}
+      {!clientError && state.message && !state.ok && <p className="px-3 pb-2 text-xs text-red-600">{state.message}</p>}
     </div>
   )
 }

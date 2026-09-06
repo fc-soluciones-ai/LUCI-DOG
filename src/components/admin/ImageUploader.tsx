@@ -1,36 +1,52 @@
 'use client'
 
 import { useRef, useState, type DragEvent, type MouseEvent } from 'react'
+import { compressImageIfNeeded, formatMB, MAX_UPLOAD_BYTES, replaceInputFile, validateUploadSize } from '@/lib/client/imageUpload'
 
-const MAX_SIZE_BYTES = 5 * 1024 * 1024
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
 interface Props {
   name?: string
   removeFieldName?: string
   initialImageUrl?: string | null
+  /** Avisa al form contenedor mientras la imagen se está comprimiendo, para deshabilitar "Guardar" y no enviar antes de tiempo. */
+  onPreparingChange?: (preparing: boolean) => void
 }
 
-/** Subida de imagen con drag-and-drop, selector de archivo y vista previa. */
-export function ImageUploader({ name = 'image', removeFieldName = 'removeImage', initialImageUrl }: Props) {
+/** Subida de imagen con drag-and-drop, selector de archivo, compresión automática y vista previa. */
+export function ImageUploader({ name = 'image', removeFieldName = 'removeImage', initialImageUrl, onPreparingChange }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [preview, setPreview] = useState<string | null>(initialImageUrl ?? null)
   const [removed, setRemoved] = useState(false)
   const [dragOver, setDragOver] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [preparing, setPreparing] = useState(false)
 
-  function applyFile(file: File | undefined) {
+  async function applyFile(file: File | undefined) {
     setError(null)
-    if (!file) return
+    if (!file || !inputRef.current) return
+
     if (!ALLOWED_TYPES.includes(file.type)) {
       setError('Formato no soportado. Usa JPG, PNG o WEBP.')
+      inputRef.current.value = ''
       return
     }
-    if (file.size > MAX_SIZE_BYTES) {
-      setError('La imagen supera el tamaño máximo de 5 MB.')
+
+    setPreparing(true)
+    onPreparingChange?.(true)
+    const prepared = await compressImageIfNeeded(file)
+    setPreparing(false)
+    onPreparingChange?.(false)
+
+    const sizeError = validateUploadSize(prepared)
+    if (sizeError) {
+      setError(`${sizeError} Intenta con una imagen más liviana.`)
+      inputRef.current.value = ''
       return
     }
-    setPreview(URL.createObjectURL(file))
+
+    if (prepared !== file) replaceInputFile(inputRef.current, prepared)
+    setPreview(URL.createObjectURL(prepared))
     setRemoved(false)
   }
 
@@ -40,7 +56,7 @@ export function ImageUploader({ name = 'image', removeFieldName = 'removeImage',
     const file = event.dataTransfer.files?.[0]
     if (file && inputRef.current) {
       inputRef.current.files = event.dataTransfer.files
-      applyFile(file)
+      void applyFile(file)
     }
   }
 
@@ -69,14 +85,16 @@ export function ImageUploader({ name = 'image', removeFieldName = 'removeImage',
           dragOver ? 'border-slate-900 bg-slate-50' : 'border-slate-300'
         }`}
       >
-        {preview ? (
+        {preparing ? (
+          <span className="text-slate-500">⏳ Preparando imagen...</span>
+        ) : preview ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={preview} alt="Vista previa" className="h-32 w-32 rounded-lg object-cover" />
         ) : (
           <>
             <span className="text-2xl">🖼️</span>
             <span className="text-slate-500">Arrastra una imagen o haz clic para elegirla</span>
-            <span className="text-xs text-slate-400">JPG, PNG o WEBP · máx. 5 MB</span>
+            <span className="text-xs text-slate-400">JPG, PNG o WEBP · máx. {formatMB(MAX_UPLOAD_BYTES)}</span>
           </>
         )}
         <input
@@ -85,7 +103,7 @@ export function ImageUploader({ name = 'image', removeFieldName = 'removeImage',
           name={name}
           accept="image/jpeg,image/png,image/webp"
           className="hidden"
-          onChange={(event) => applyFile(event.target.files?.[0])}
+          onChange={(event) => void applyFile(event.target.files?.[0])}
         />
       </div>
 

@@ -128,6 +128,7 @@ export async function uploadBrandingAssetAction(
       return { ok: false, message: 'Selecciona una imagen primero.' }
     }
   } catch (error) {
+    console.error('[uploadBrandingAssetAction] falló la subida del asset de marca:', error)
     return { ok: false, message: error instanceof Error ? error.message : 'No se pudo subir la imagen.' }
   }
 

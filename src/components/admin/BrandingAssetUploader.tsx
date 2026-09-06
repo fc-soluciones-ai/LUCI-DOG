@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
 import { ImageUploader } from './ImageUploader'
 import { uploadBrandingAssetAction, type BrandingAssetState } from '@/modules/config/actions'
 
@@ -15,16 +15,17 @@ const initialState: BrandingAssetState = { ok: false }
 
 export function BrandingAssetUploader({ kind, label, hint, currentUrl }: Props) {
   const [state, formAction, pending] = useActionState(uploadBrandingAssetAction.bind(null, kind), initialState)
+  const [preparingImage, setPreparingImage] = useState(false)
 
   return (
     <div>
       <p className="text-sm font-medium text-slate-700">{label}</p>
       <p className="text-xs text-slate-500">{hint}</p>
       <form action={formAction} className="mt-2 max-w-xs">
-        <ImageUploader initialImageUrl={currentUrl} />
+        <ImageUploader initialImageUrl={currentUrl} onPreparingChange={setPreparingImage} />
         <button
           type="submit"
-          disabled={pending}
+          disabled={pending || preparingImage}
           className="mt-2 rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
         >
           {pending ? 'Guardando...' : 'Guardar'}
