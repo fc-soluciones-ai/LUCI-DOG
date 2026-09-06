@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getTutorProfile } from '@/modules/crm/tutors'
 import { createPetAction, deactivatePetAction, deleteTutorAction, updateTutorAction } from '@/modules/crm/actions'
+import { listActiveCustomerTags } from '@/modules/config/customerTags'
+import { updateTutorTagsAction } from '@/modules/config/actions'
 import { DataTableActions } from '@/components/admin/DataTableActions'
 import { GivePortalAccessButton } from '@/components/admin/GivePortalAccessButton'
 
@@ -19,6 +21,7 @@ export default async function TutorDetailPage({ params }: { params: Promise<{ tu
   const { tutorId } = await params
   const tutor = await getTutorProfile(tutorId).catch(() => null)
   if (!tutor) notFound()
+  const availableTags = await listActiveCustomerTags()
 
   return (
     <div>
@@ -87,6 +90,40 @@ export default async function TutorDetailPage({ params }: { params: Promise<{ tu
             canCreate={Boolean(tutor.email)}
           />
         </div>
+      </div>
+
+      <div className="mt-8 rounded-lg border border-slate-200 bg-white p-4">
+        <h2 className="text-lg font-medium text-slate-900">Etiquetas</h2>
+        {availableTags.length === 0 ? (
+          <p className="mt-2 text-sm text-slate-500">
+            Sin etiquetas creadas todavía —{' '}
+            <a href="/admin/configuracion" className="underline">
+              créalas en Configuración
+            </a>
+            .
+          </p>
+        ) : (
+          <form action={updateTutorTagsAction.bind(null, tutor.id)} className="mt-2 space-y-3">
+            <div className="flex flex-wrap gap-3">
+              {availableTags.map((tag) => (
+                <label key={tag.id} className="flex items-center gap-1.5 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    name="tagIds"
+                    value={tag.id}
+                    defaultChecked={tutor.tags.some((t) => t.id === tag.id)}
+                  />
+                  <span className="rounded-full px-2 py-0.5 text-xs font-medium text-white" style={{ backgroundColor: tag.color }}>
+                    {tag.name}
+                  </span>
+                </label>
+              ))}
+            </div>
+            <button type="submit" className="rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-medium text-white">
+              Guardar etiquetas
+            </button>
+          </form>
+        )}
       </div>
 
       <div className="mt-8">

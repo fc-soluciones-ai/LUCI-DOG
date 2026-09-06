@@ -15,6 +15,15 @@ import {
   type SocialLinks,
 } from './branding'
 import { deleteBrandingAssetFile, uploadBrandingAsset } from '@/lib/supabase/storage'
+import {
+  createProductCategory,
+  createUnitOfMeasure,
+  setProductCategoryActive,
+  setUnitOfMeasureActive,
+  updateProductCategory,
+  updateUnitOfMeasure,
+} from './productCatalogs'
+import { createCustomerTag, setCustomerTagActive, setTutorTags, updateCustomerTag } from './customerTags'
 
 function num(formData: FormData, key: string): number | undefined {
   const value = formData.get(key)
@@ -125,4 +134,87 @@ export async function uploadBrandingAssetAction(
   revalidatePath('/admin/configuracion/branding')
   revalidateBrandingEverywhere()
   return { ok: true }
+}
+
+// --- Categorías de producto ---
+
+export async function createProductCategoryAction(formData: FormData) {
+  const name = String(formData.get('name') ?? '').trim()
+  if (!name) return
+  await createProductCategory({ name, sortOrder: num(formData, 'sortOrder') })
+  revalidatePath('/admin/configuracion')
+  revalidatePath('/admin/inventario')
+}
+
+export async function updateProductCategoryAction(id: string, formData: FormData) {
+  const name = String(formData.get('name') ?? '').trim()
+  if (!name) return
+  await updateProductCategory(id, { name, sortOrder: num(formData, 'sortOrder') })
+  revalidatePath('/admin/configuracion')
+  revalidatePath('/admin/inventario')
+}
+
+export async function deleteProductCategoryAction(id: string) {
+  await setProductCategoryActive(id, false)
+  revalidatePath('/admin/configuracion')
+  revalidatePath('/admin/inventario')
+}
+
+// --- Unidades de medida ---
+
+export async function createUnitOfMeasureAction(formData: FormData) {
+  const name = String(formData.get('name') ?? '').trim()
+  const abbreviation = String(formData.get('abbreviation') ?? '').trim()
+  if (!name || !abbreviation) return
+  await createUnitOfMeasure({ name, abbreviation, sortOrder: num(formData, 'sortOrder') })
+  revalidatePath('/admin/configuracion')
+  revalidatePath('/admin/inventario')
+}
+
+export async function updateUnitOfMeasureAction(id: string, formData: FormData) {
+  const name = String(formData.get('name') ?? '').trim()
+  const abbreviation = String(formData.get('abbreviation') ?? '').trim()
+  if (!name || !abbreviation) return
+  await updateUnitOfMeasure(id, { name, abbreviation, sortOrder: num(formData, 'sortOrder') })
+  revalidatePath('/admin/configuracion')
+  revalidatePath('/admin/inventario')
+}
+
+export async function deleteUnitOfMeasureAction(id: string) {
+  await setUnitOfMeasureActive(id, false)
+  revalidatePath('/admin/configuracion')
+  revalidatePath('/admin/inventario')
+}
+
+// --- Etiquetas de clientes ---
+
+export async function createCustomerTagAction(formData: FormData) {
+  const name = String(formData.get('name') ?? '').trim()
+  if (!name) return
+  const color = String(formData.get('color') ?? '#64748b')
+  await createCustomerTag({ name, color })
+  revalidatePath('/admin/configuracion')
+  revalidatePath('/admin/clientes')
+}
+
+export async function updateCustomerTagAction(id: string, formData: FormData) {
+  const name = String(formData.get('name') ?? '').trim()
+  if (!name) return
+  const color = String(formData.get('color') ?? '#64748b')
+  await updateCustomerTag(id, { name, color })
+  revalidatePath('/admin/configuracion')
+  revalidatePath('/admin/clientes')
+}
+
+export async function deleteCustomerTagAction(id: string) {
+  await setCustomerTagActive(id, false)
+  revalidatePath('/admin/configuracion')
+  revalidatePath('/admin/clientes')
+}
+
+export async function updateTutorTagsAction(tutorId: string, formData: FormData) {
+  const tagIds = formData.getAll('tagIds').map(String)
+  await setTutorTags(tutorId, tagIds)
+  revalidatePath('/admin/clientes')
+  revalidatePath(`/admin/clientes/${tutorId}`)
 }

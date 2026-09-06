@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { EquipmentStatus, InstrumentType, ProductUnit } from '@prisma/client'
+import { EquipmentStatus, InstrumentType } from '@prisma/client'
 import { createEquipment, flagEquipmentStatus, logMaintenance, softDeleteEquipment, updateEquipment } from './equipment'
 import { createInstrument, markInstrumentSharpened, retireInstrument } from './instruments'
 import { createProduct, restockProduct, softDeleteProduct, updateProduct } from './products'
@@ -16,8 +16,8 @@ function num(formData: FormData, key: string): number | undefined {
 export async function createProductAction(formData: FormData) {
   await createProduct({
     name: String(formData.get('name')),
-    category: (formData.get('category') as string) || undefined,
-    unit: formData.get('unit') as ProductUnit,
+    categoryId: (formData.get('categoryId') as string) || undefined,
+    unitId: (formData.get('unitId') as string) || undefined,
     stockCurrent: num(formData, 'stockCurrent') ?? 0,
     stockMin: num(formData, 'stockMin') ?? 0,
     costPerUnit: num(formData, 'costPerUnit') ?? 0,
@@ -36,7 +36,8 @@ export async function restockProductAction(productId: string, formData: FormData
 export async function updateProductAction(productId: string, formData: FormData) {
   await updateProduct(productId, {
     name: String(formData.get('name') ?? ''),
-    category: (formData.get('category') as string) || undefined,
+    categoryId: (formData.get('categoryId') as string) || undefined,
+    unitId: (formData.get('unitId') as string) || undefined,
     stockMin: num(formData, 'stockMin') ?? 0,
     costPerUnit: num(formData, 'costPerUnit') ?? 0,
     supplier: (formData.get('supplier') as string) || undefined,

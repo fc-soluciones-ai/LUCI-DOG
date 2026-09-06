@@ -14,6 +14,8 @@ import {
   updateProductAction,
 } from '@/modules/inventory/actions'
 import { DataTableActions } from '@/components/admin/DataTableActions'
+import { HealthProgressBar } from '@/components/admin/HealthProgressBar'
+import { listActiveProductCategories, listActiveUnitsOfMeasure } from '@/modules/config/productCatalogs'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,11 +28,13 @@ const INSTRUMENT_TYPE_LABEL: Record<string, string> = {
 }
 
 export default async function InventarioPage() {
-  const [products, instruments, pendingClosures, availableInstruments] = await Promise.all([
+  const [products, instruments, pendingClosures, availableInstruments, productCategories, units] = await Promise.all([
     listProducts(),
     listInstruments(),
     getPendingInventoryClosures(),
     prisma.instrument.findMany({ where: { status: InstrumentStatus.OK } }),
+    listActiveProductCategories(),
+    listActiveUnitsOfMeasure(),
   ])
 
   const instrumentsByType = new Map<string, typeof availableInstruments>()
@@ -137,11 +141,11 @@ export default async function InventarioPage() {
               <div key={product.id} className="flex items-center justify-between gap-3 p-4">
                 <div>
                   <p className="font-medium text-slate-900">
-                    {product.name} {product.category && <span className="text-xs text-slate-400">({product.category})</span>}
+                    {product.name} {product.category && <span className="text-xs text-slate-400">({product.category.name})</span>}
                   </p>
                   <p className="text-sm text-slate-500">
-                    Stock: {Number(product.stockCurrent).toFixed(1)} {product.unit} · Mínimo:{' '}
-                    {Number(product.stockMin).toFixed(1)} {product.unit}
+                    Stock: {Number(product.stockCurrent).toFixed(1)} {product.unitOfMeasure?.abbreviation ?? ''} · Mínimo:{' '}
+                    {Number(product.stockMin).toFixed(1)} {product.unitOfMeasure?.abbreviation ?? ''}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -166,10 +170,30 @@ export default async function InventarioPage() {
                           Nombre
                           <input name="name" required defaultValue={product.name} className="input mt-1 w-full" />
                         </label>
-                        <label className="text-sm text-slate-700">
-                          Categoría
-                          <input name="category" defaultValue={product.category ?? ''} className="input mt-1 w-full" />
-                        </label>
+                        <div className="grid grid-cols-2 gap-3">
+                          <label className="text-sm text-slate-700">
+                            Categoría
+                            <select name="categoryId" defaultValue={product.categoryId ?? ''} className="input mt-1 w-full">
+                              <option value="">Sin categoría</option>
+                              {productCategories.map((category) => (
+                                <option key={category.id} value={category.id}>
+                                  {category.name}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <label className="text-sm text-slate-700">
+                            Unidad
+                            <select name="unitId" defaultValue={product.unitId ?? ''} className="input mt-1 w-full">
+                              <option value="">Sin unidad</option>
+                              {units.map((unit) => (
+                                <option key={unit.id} value={unit.id}>
+                                  {unit.name} ({unit.abbreviation})
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        </div>
                         <div className="grid grid-cols-2 gap-3">
                           <label className="text-sm text-slate-700">
                             Stock mínimo
@@ -215,11 +239,21 @@ export default async function InventarioPage() {
           <summary className="cursor-pointer text-sm font-medium text-slate-700">+ Nuevo producto</summary>
           <form action={createProductAction} className="mt-3 grid max-w-lg gap-2 sm:grid-cols-2">
             <input name="name" required placeholder="Nombre" className="input" />
-            <input name="category" placeholder="Categoría (opcional)" className="input" />
-            <select name="unit" defaultValue="ML" className="input">
-              <option value="ML">Mililitros</option>
-              <option value="GRAM">Gramos</option>
-              <option value="UNIT">Unidades</option>
+            <select name="categoryId" defaultValue="" className="input">
+              <option value="">Categoría (opcional)</option>
+              {productCategories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+            <select name="unitId" defaultValue="" className="input">
+              <option value="">Unidad (opcional)</option>
+              {units.map((unit) => (
+                <option key={unit.id} value={unit.id}>
+                  {unit.name} ({unit.abbreviation})
+                </option>
+              ))}
             </select>
             <input name="stockCurrent" type="number" step="0.1" placeholder="Stock actual" className="input" />
             <input name="stockMin" type="number" step="0.1" placeholder="Stock mínimo" className="input" />
@@ -237,7 +271,6 @@ export default async function InventarioPage() {
         <h2 className="text-lg font-medium text-slate-900">Instrumental</h2>
         <div className="mt-3 divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
           {instruments.map((instrument) => {
-            const pct = instrument.remainingRatio !== null ? Math.round(instrument.remainingRatio * 100) : null
             const statusColor =
               instrument.status === 'OK'
                 ? 'bg-green-100 text-green-800'
@@ -256,8 +289,12 @@ export default async function InventarioPage() {
                   <p className="text-sm text-slate-500">
                     {Number(instrument.usedHours).toFixed(1)}h usadas
                     {instrument.expectedLifeHours ? ` / ${Number(instrument.expectedLifeHours)}h` : ''}
-                    {pct !== null ? ` · ${pct}% vida útil restante` : ''}
                   </p>
+                  {instrument.remainingRatio !== null && (
+                    <div className="mt-2">
+                      <HealthProgressBar ratio={instrument.remainingRatio} />
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusColor}`}>{instrument.status}</span>

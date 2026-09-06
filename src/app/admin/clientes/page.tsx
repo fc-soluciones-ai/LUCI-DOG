@@ -43,7 +43,18 @@ export default async function ClientesPage({ searchParams }: { searchParams: Pro
         {tutors.map((tutor) => (
           <div key={tutor.id} className="flex items-center justify-between gap-3 p-4 hover:bg-slate-50">
             <Link href={`/admin/clientes/${tutor.id}`} className="min-w-0 flex-1">
-              <p className="font-medium text-slate-900">{tutor.fullName}</p>
+              <p className="flex flex-wrap items-center gap-2 font-medium text-slate-900">
+                {tutor.fullName}
+                {tutor.tags.map((tag) => (
+                  <span
+                    key={tag.id}
+                    className="rounded-full px-2 py-0.5 text-[10px] font-medium text-white"
+                    style={{ backgroundColor: tag.color }}
+                  >
+                    {tag.name}
+                  </span>
+                ))}
+              </p>
               <p className="text-sm text-slate-500">
                 {tutor.phoneWhatsApp} · {tutor._count.pets} mascota{tutor._count.pets === 1 ? '' : 's'}
               </p>

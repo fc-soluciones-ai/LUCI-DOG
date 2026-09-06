@@ -1,14 +1,18 @@
-import { InventoryTxType, type ProductUnit } from '@prisma/client'
+import { InventoryTxType } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 
 export async function listProducts() {
-  return prisma.product.findMany({ where: { active: true }, orderBy: { name: 'asc' } })
+  return prisma.product.findMany({
+    where: { active: true },
+    orderBy: { name: 'asc' },
+    include: { category: true, unitOfMeasure: true },
+  })
 }
 
 export interface CreateProductInput {
   name: string
-  category?: string
-  unit: ProductUnit
+  categoryId?: string
+  unitId?: string
   stockCurrent: number
   stockMin: number
   costPerUnit: number
@@ -31,7 +35,8 @@ export async function restockProduct(productId: string, quantity: number, note?:
 
 export interface UpdateProductInput {
   name: string
-  category?: string
+  categoryId?: string
+  unitId?: string
   stockMin: number
   costPerUnit: number
   supplier?: string

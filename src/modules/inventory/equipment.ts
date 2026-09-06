@@ -1,6 +1,13 @@
 import { EquipmentStatus } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 
+/** Antigüedad vs. vida útil declarada — proxy de "salud"/depreciación del activo. */
+function getEquipmentHealthRatio(purchaseDate: Date, usefulLifeMonths: number, now: Date): number {
+  if (usefulLifeMonths <= 0) return 1
+  const ageMonths = (now.getTime() - purchaseDate.getTime()) / (30.44 * 24 * 60 * 60 * 1000)
+  return Math.max(0, Math.min(1, 1 - ageMonths / usefulLifeMonths))
+}
+
 export async function listEquipment() {
   const equipment = await prisma.equipment.findMany({
     where: { deletedAt: null },
@@ -14,6 +21,7 @@ export async function listEquipment() {
   return equipment.map((item) => ({
     ...item,
     isOverdue: Boolean(item.nextMaintenanceDue && item.nextMaintenanceDue < now),
+    healthRatio: getEquipmentHealthRatio(item.purchaseDate, item.usefulLifeMonths, now),
   }))
 }
 

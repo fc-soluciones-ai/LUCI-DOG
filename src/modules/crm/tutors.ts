@@ -13,7 +13,7 @@ export async function searchTutors(query?: string) {
           }
         : {}),
     },
-    include: { _count: { select: { pets: true } } },
+    include: { _count: { select: { pets: true } }, tags: true },
     orderBy: { createdAt: 'desc' },
     take: 50,
   })
@@ -25,6 +25,7 @@ export async function getTutorProfile(tutorId: string) {
     include: {
       pets: { where: { active: true }, orderBy: { createdAt: 'desc' } },
       profile: true,
+      tags: true,
     },
   })
 }

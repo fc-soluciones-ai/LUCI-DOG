@@ -98,7 +98,7 @@ export async function getInventoryPerformanceReport(monthDate: Date) {
 
   const transactions = await prisma.inventoryTransaction.findMany({
     where: { createdAt: { gte: start, lt: end } },
-    include: { product: true },
+    include: { product: { include: { unitOfMeasure: true } } },
   })
 
   const byProduct = new Map<string, { unit: string; consumption: number; waste: number; costConsumed: number }>()
@@ -107,7 +107,7 @@ export async function getInventoryPerformanceReport(monthDate: Date) {
     if (tx.type !== InventoryTxType.CONSUMPTION && tx.type !== InventoryTxType.WASTE) continue
 
     const entry = byProduct.get(tx.product.name) ?? {
-      unit: tx.product.unit,
+      unit: tx.product.unitOfMeasure?.abbreviation ?? '',
       consumption: 0,
       waste: 0,
       costConsumed: 0,

@@ -99,12 +99,6 @@ enum TimeLogSource {
   SYSTEM_OVERRIDE
 }
 
-enum ProductUnit {
-  ML
-  GRAM
-  UNIT
-}
-
 enum InventoryTxType {
   CONSUMPTION
   RESTOCK
@@ -186,9 +180,20 @@ model Tutor {
   invoices     Invoice[]
   notifications NotificationLog[]
   profile      Profile?
+  tags         CustomerTag[]
 
   @@index([phoneWhatsApp])
   @@index([deletedAt])
+}
+
+// Etiquetas administrables para clasificar clientes (ej. "VIP", "Frecuente", "Problemático").
+model CustomerTag {
+  id     String  @id @default(cuid())
+  name   String  @unique
+  color  String  @default("#64748b") // hex, para el badge
+  active Boolean @default(true)
+
+  tutors Tutor[]
 }
 
 model Pet {
@@ -485,19 +490,45 @@ model TimeLog {
 // ----------------------------------------------------------------------------
 
 model Product {
-  id           String      @id @default(cuid())
+  id           String   @id @default(cuid())
   name         String
-  category     String? // ej. Shampoo, Acondicionadores, Perfumes, Accesorios
-  unit         ProductUnit @default(ML)
-  stockCurrent Decimal     @db.Decimal(10, 2)
-  stockMin     Decimal     @db.Decimal(10, 2)
-  costPerUnit  Decimal     @db.Decimal(10, 4)
+  categoryId   String?
+  unitId       String?
+  stockCurrent Decimal  @db.Decimal(10, 2)
+  stockMin     Decimal  @db.Decimal(10, 2)
+  costPerUnit  Decimal  @db.Decimal(10, 4)
   supplier     String?
-  active       Boolean     @default(true)
+  active       Boolean  @default(true)
 
-  formulas     Formula[]
-  transactions InventoryTransaction[]
-  prepItems    DailyPrepItem[]
+  category      ProductCategory? @relation(fields: [categoryId], references: [id])
+  unitOfMeasure UnitOfMeasure?   @relation(fields: [unitId], references: [id])
+  formulas      Formula[]
+  transactions  InventoryTransaction[]
+  prepItems     DailyPrepItem[]
+
+  @@index([categoryId])
+  @@index([unitId])
+}
+
+// Catálogo administrable de categorías de producto (Módulo de Configuración).
+model ProductCategory {
+  id        String  @id @default(cuid())
+  name      String  @unique
+  active    Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  products Product[]
+}
+
+// Catálogo administrable de unidades de medida (ml, gramo, unidad, etc.).
+model UnitOfMeasure {
+  id           String  @id @default(cuid())
+  name         String  @unique
+  abbreviation String
+  active       Boolean @default(true)
+  sortOrder    Int     @default(0)
+
+  products Product[]
 }
 
 model InventoryTransaction {

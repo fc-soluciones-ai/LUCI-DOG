@@ -8,6 +8,7 @@ import {
   updateEquipmentAction,
 } from '@/modules/inventory/actions'
 import { DataTableActions } from '@/components/admin/DataTableActions'
+import { HealthProgressBar } from '@/components/admin/HealthProgressBar'
 import { formatCRC } from '@/lib/currency'
 
 export const dynamic = 'force-dynamic'
@@ -75,6 +76,9 @@ export default async function EquiposPage() {
                     ? item.nextMaintenanceDue.toLocaleDateString('es-CR', { dateStyle: 'medium' })
                     : 'sin programar'}
                 </p>
+                <div className="mt-2">
+                  <HealthProgressBar ratio={item.healthRatio} label="vida útil" />
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 {item.isOverdue && (
