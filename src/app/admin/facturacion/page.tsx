@@ -1,5 +1,5 @@
 import { getInvoicesNeedingAttention, getPendingClosures } from '@/modules/billing/invoices'
-import { closeServiceAction, manuallyUnblockAction, verifyProofAction } from '@/modules/billing/actions'
+import { closeServiceAction, manuallyUnblockAction, rejectProofAction, verifyProofAction } from '@/modules/billing/actions'
 
 export const dynamic = 'force-dynamic'
 
@@ -7,12 +7,14 @@ const BILLING_LABEL: Record<string, string> = {
   PENDING_PROOF: 'Comprobante pendiente',
   OVERDUE: 'Vencido',
   BLOCKED: 'Bloqueado',
+  REJECTED: 'Comprobante rechazado',
 }
 
 const BILLING_COLOR: Record<string, string> = {
   PENDING_PROOF: 'bg-amber-100 text-amber-800',
   OVERDUE: 'bg-red-100 text-red-800',
   BLOCKED: 'bg-red-100 text-red-800',
+  REJECTED: 'bg-red-100 text-red-800',
 }
 
 export default async function FacturacionPage() {
@@ -125,6 +127,12 @@ export default async function FacturacionPage() {
                     <input name="verifiedBy" required placeholder="Tu nombre" className="input w-40 text-xs" />
                     <button type="submit" className="rounded bg-slate-900 px-3 py-1.5 text-xs font-medium text-white">
                       Verificar comprobante
+                    </button>
+                  </form>
+                  <form action={rejectProofAction.bind(null, invoice.id)} className="flex gap-2">
+                    <input name="reason" required placeholder="Motivo del rechazo" className="input w-40 text-xs" />
+                    <button type="submit" className="rounded bg-red-100 px-3 py-1.5 text-xs font-medium text-red-800">
+                      Rechazar comprobante
                     </button>
                   </form>
                   <form action={manuallyUnblockAction.bind(null, invoice.tutorId)} className="flex gap-2">

@@ -1,5 +1,8 @@
 import { requireRole } from '@/modules/auth/profile'
-import { listClientAppointments } from '@/modules/client/portal'
+import { listBookableServices, listClientAppointments, listClientPets } from '@/modules/client/portal'
+import { cancelAppointmentByClientAction } from '@/modules/client/actions'
+import { AppointmentFormModal } from '@/components/client/AppointmentFormModal'
+import { DataTableActions } from '@/components/admin/DataTableActions'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,13 +30,27 @@ const STATUS_COLOR: Record<string, string> = {
   NO_SHOW: 'bg-slate-100 text-slate-500',
 }
 
+const RESCHEDULABLE = new Set(['PENDING_CONFIRMATION', 'CONFIRMED'])
+const CANCELLABLE = new Set(['PENDING_CONFIRMATION', 'CONFIRMED', 'RESCHEDULE_REQUESTED', 'CHECKED_IN', 'DELAYED'])
+
 export default async function ClientCitasPage() {
   const profile = await requireRole(['CLIENT'])
-  const appointments = await listClientAppointments(profile.tutorId!)
+  const [appointments, pets, services] = await Promise.all([
+    listClientAppointments(profile.tutorId!),
+    listClientPets(profile.tutorId!),
+    listBookableServices(),
+  ])
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-slate-900">Mis Citas</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold text-slate-900">Mis Citas</h1>
+        <AppointmentFormModal
+          mode="create"
+          pets={pets.map((pet) => ({ id: pet.id, name: pet.name }))}
+          services={services.map((service) => ({ ...service, basePrice: Number(service.basePrice) }))}
+        />
+      </div>
 
       <div className="mt-6 divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
         {appointments.length === 0 && <p className="p-4 text-sm text-slate-500">Aún no tienes citas registradas.</p>}
@@ -61,9 +78,32 @@ export default async function ClientCitasPage() {
                 </p>
               </div>
             </div>
-            <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_COLOR[appointment.status]}`}>
-              {STATUS_LABEL[appointment.status] ?? appointment.status}
-            </span>
+            <div className="flex items-center gap-3">
+              <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_COLOR[appointment.status]}`}>
+                {STATUS_LABEL[appointment.status] ?? appointment.status}
+              </span>
+              {RESCHEDULABLE.has(appointment.status) && (
+                <AppointmentFormModal
+                  mode="reschedule"
+                  appointment={{
+                    id: appointment.id,
+                    petName: appointment.pet.name,
+                    serviceId: appointment.serviceId,
+                    serviceName: appointment.service.name,
+                  }}
+                />
+              )}
+              {CANCELLABLE.has(appointment.status) && (
+                <DataTableActions
+                  deleteLabel="Cancelar"
+                  deleteConfirmText={`¿Cancelar la cita de ${appointment.pet.name} el ${appointment.scheduledStart.toLocaleDateString('es-CR', { dateStyle: 'medium' })}?`}
+                  onDelete={async () => {
+                    'use server'
+                    await cancelAppointmentByClientAction(appointment.id)
+                  }}
+                />
+              )}
+            </div>
           </div>
         ))}
       </div>

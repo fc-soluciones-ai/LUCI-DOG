@@ -5,10 +5,11 @@ import { BookingBlockedError, ValidationError } from './errors'
 
 // Regla anti-morosidad (Módulo 6): estos estados bloquean el auto-agendamiento
 // hasta que se verifique el comprobante o el admin desautorice manualmente.
-const BLOCKING_STATUSES: BillingStatus[] = [
+export const BLOCKING_STATUSES: BillingStatus[] = [
   BillingStatus.PENDING_PROOF,
   BillingStatus.OVERDUE,
   BillingStatus.BLOCKED,
+  BillingStatus.REJECTED,
 ]
 
 export interface SelfServiceBookingInput {

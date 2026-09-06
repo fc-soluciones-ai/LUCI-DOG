@@ -1,5 +1,6 @@
 import { AppointmentStatus, type SensitivityLevel } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
+import { deletePetPhotoFile, uploadPetPhoto } from '@/lib/supabase/storage'
 
 export async function getPetProfile(petId: string) {
   return prisma.pet.findUniqueOrThrow({
@@ -54,6 +55,30 @@ export async function addPetPhoto(petId: string, input: { url: string; type: str
 
 export async function deletePetPhoto(photoId: string) {
   return prisma.petPhoto.delete({ where: { id: photoId } })
+}
+
+function extractStoragePath(url: string, bucket: string): string | null {
+  const marker = `/storage/v1/object/public/${bucket}/`
+  const index = url.indexOf(marker)
+  return index === -1 ? null : url.slice(index + marker.length)
+}
+
+/**
+ * Sube y reemplaza la foto de perfil de la mascota (bucket `pets-photos`),
+ * reusando PetPhoto (type: 'PROFILE') — el mismo campo que ya leen el
+ * Dashboard TV y el Gantt del Control Center como avatar.
+ */
+export async function setPetProfilePhoto(petId: string, file: File) {
+  const existing = await prisma.petPhoto.findFirst({ where: { petId, type: 'PROFILE' } })
+  const uploaded = await uploadPetPhoto(file)
+
+  if (existing) {
+    const oldPath = extractStoragePath(existing.url, 'pets-photos')
+    if (oldPath) await deletePetPhotoFile(oldPath)
+    await prisma.petPhoto.delete({ where: { id: existing.id } })
+  }
+
+  return prisma.petPhoto.create({ data: { petId, url: uploaded.url, type: 'PROFILE' } })
 }
 
 /** Bitácora cosmética: fórmulas e instrumental usados en cada servicio completado. */

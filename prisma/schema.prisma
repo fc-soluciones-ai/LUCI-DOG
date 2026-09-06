@@ -145,12 +145,15 @@ enum BillingStatus {
   OVERDUE
   BLOCKED
   MANUALLY_UNBLOCKED
+  REJECTED // admin rechazó el comprobante subido (folio ilegible, monto no coincide, etc.)
 }
 
 enum PaymentMethod {
   CASH
-  TRANSFER
+  TRANSFER // se conserva por datos históricos
   CARD
+  SINPE_MOVIL
+  BANK_TRANSFER
   OTHER
 }
 
@@ -611,7 +614,10 @@ model Invoice {
   paymentMethod    PaymentMethod?
   paidAt           DateTime?
 
-  proofUrl           String? // comprobante subido por el cliente
+  proofUrl           String? // comprobante subido por el cliente (Supabase Storage, bucket payment-receipts)
+  proofPath          String? // path interno del bucket, para reemplazar el archivo si se vuelve a subir
+  referenceNumber    String? // folio SINPE Móvil / transferencia
+  rejectionReason    String? // motivo cuando status = REJECTED
   proofVerifiedAt    DateTime?
   proofVerifiedBy    String?
   manuallyUnblockedAt DateTime? // desautorización manual por admin

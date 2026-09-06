@@ -1,25 +1,30 @@
-import Link from 'next/link'
 import { requireRole } from '@/modules/auth/profile'
 import { listClientInvoices } from '@/modules/client/portal'
+import { InvoicePaymentModal } from '@/components/client/InvoicePaymentModal'
 import { formatCRC } from '@/lib/currency'
 
 export const dynamic = 'force-dynamic'
 
 const STATUS_LABEL: Record<string, string> = {
   PAID: 'Pagada',
-  PENDING_PROOF: 'Esperando tu comprobante',
+  PENDING_PROOF: 'Esperando verificación',
   OVERDUE: 'Comprobante pendiente (vencido)',
+  REJECTED: 'Comprobante rechazado',
 }
 
 const STATUS_COLOR: Record<string, string> = {
   PAID: 'bg-green-100 text-green-800',
   PENDING_PROOF: 'bg-amber-100 text-amber-800',
   OVERDUE: 'bg-red-100 text-red-800',
+  REJECTED: 'bg-red-100 text-red-800',
 }
+
+const NEEDS_PAYMENT = new Set(['PENDING_PROOF', 'OVERDUE', 'REJECTED'])
 
 export default async function ClientFacturasPage() {
   const profile = await requireRole(['CLIENT'])
   const invoices = await listClientInvoices(profile.tutorId!)
+  const paymentInfoText = process.env.PAYMENT_INFO_TEXT ?? 'Contacta al salón para los datos de pago.'
 
   return (
     <div>
@@ -36,15 +41,21 @@ export default async function ClientFacturasPage() {
               <p className="text-sm text-slate-500">
                 {invoice.createdAt.toLocaleDateString('es-CR', { dateStyle: 'medium' })} · {formatCRC(invoice.total)}
               </p>
+              {invoice.status === 'REJECTED' && invoice.rejectionReason && (
+                <p className="mt-1 text-xs text-red-600">Motivo: {invoice.rejectionReason}</p>
+              )}
             </div>
             <div className="flex items-center gap-3">
               <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_COLOR[invoice.status] ?? 'bg-slate-100 text-slate-500'}`}>
                 {STATUS_LABEL[invoice.status] ?? invoice.status}
               </span>
-              {invoice.status !== 'PAID' && (
-                <Link href={`/pagar/${invoice.id}`} className="text-sm text-slate-600 hover:text-slate-900 hover:underline">
-                  Subir comprobante
-                </Link>
+              {NEEDS_PAYMENT.has(invoice.status) && (
+                <InvoicePaymentModal
+                  invoiceId={invoice.id}
+                  paymentInfoText={paymentInfoText}
+                  rejectionReason={invoice.status === 'REJECTED' ? invoice.rejectionReason : null}
+                  triggerLabel={invoice.status === 'REJECTED' ? 'Volver a enviar' : 'Subir comprobante'}
+                />
               )}
             </div>
           </div>

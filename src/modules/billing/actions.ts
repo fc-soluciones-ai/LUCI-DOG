@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { PaymentMethod } from '@prisma/client'
-import { closeServiceAndInvoice, manuallyUnblockTutor, submitProof, verifyProof } from './invoices'
+import { closeServiceAndInvoice, manuallyUnblockTutor, rejectProof, submitProof, verifyProof } from './invoices'
 
 export async function closeServiceAction(appointmentId: string, formData: FormData) {
   const descriptions = formData.getAll('itemDescription') as string[]
@@ -43,4 +43,12 @@ export async function submitProofAction(invoiceId: string, formData: FormData) {
   if (!proofUrl) return
   await submitProof(invoiceId, proofUrl)
   revalidatePath(`/pagar/${invoiceId}`)
+}
+
+export async function rejectProofAction(invoiceId: string, formData: FormData) {
+  const reason = String(formData.get('reason') ?? '').trim()
+  if (!reason) return
+  await rejectProof(invoiceId, reason)
+  revalidatePath('/admin/facturacion')
+  revalidatePath('/client/facturas')
 }

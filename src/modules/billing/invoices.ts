@@ -1,6 +1,7 @@
-import { AppointmentStatus, BillingStatus, NotificationStage, NotificationStatus, type PaymentMethod } from '@prisma/client'
+import { AppointmentStatus, BillingStatus, NotificationStage, NotificationStatus, PaymentMethod } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getWhatsAppProvider } from '@/lib/whatsapp/adapter'
+import { deletePaymentReceipt, uploadPaymentReceipt } from '@/lib/supabase/storage'
 
 /** Citas COMPLETED sin factura todavía — pendientes de cerrar (Módulo 6). */
 export async function getPendingClosures() {
@@ -98,9 +99,47 @@ export async function closeServiceAndInvoice(input: CloseServiceInput) {
   return invoice
 }
 
-/** Envío del comprobante de pago por el cliente (página pública, sin login). */
+/** Envío del comprobante de pago por el cliente (página pública, sin login — pega un link). */
 export async function submitProof(invoiceId: string, proofUrl: string) {
   return prisma.invoice.update({ where: { id: invoiceId }, data: { proofUrl } })
+}
+
+/**
+ * Envío de comprobante desde el Portal del Cliente (con login): sube el
+ * archivo real a Storage (bucket `payment-receipts`), guarda el método de
+ * pago y el folio de referencia (SINPE/transferencia), y borra el comprobante
+ * anterior si el cliente ya había subido uno (ej. tras un rechazo).
+ */
+export async function submitProofWithUpload(
+  invoiceId: string,
+  file: File,
+  paymentMethod: PaymentMethod,
+  referenceNumber?: string
+) {
+  const invoice = await prisma.invoice.findUniqueOrThrow({ where: { id: invoiceId } })
+  const uploaded = await uploadPaymentReceipt(file)
+  if (invoice.proofPath) await deletePaymentReceipt(invoice.proofPath)
+
+  return prisma.invoice.update({
+    where: { id: invoiceId },
+    data: {
+      proofUrl: uploaded.url,
+      proofPath: uploaded.path,
+      paymentMethod,
+      referenceNumber,
+      status: BillingStatus.PENDING_PROOF,
+      rejectionReason: null,
+    },
+  })
+}
+
+/** El staff rechaza un comprobante inválido (folio ilegible, monto no coincide, etc.). */
+export async function rejectProof(invoiceId: string, reason: string) {
+  const invoice = await prisma.invoice.findUniqueOrThrow({ where: { id: invoiceId } })
+  return prisma.$transaction([
+    prisma.invoice.update({ where: { id: invoiceId }, data: { status: BillingStatus.REJECTED, rejectionReason: reason } }),
+    prisma.tutor.update({ where: { id: invoice.tutorId }, data: { billingStatus: BillingStatus.REJECTED } }),
+  ])
 }
 
 /** El staff verifica el comprobante recibido: desbloquea el auto-agendamiento del tutor. */

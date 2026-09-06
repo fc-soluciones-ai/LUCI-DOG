@@ -37,6 +37,7 @@ export async function listClientPets(tutorId: string) {
   return prisma.pet.findMany({
     where: { tutorId, active: true },
     orderBy: { createdAt: 'desc' },
+    include: { photos: { where: { type: 'PROFILE' }, take: 1 } },
   })
 }
 
@@ -53,6 +54,15 @@ export async function getClientPetHistory(tutorId: string, petId: string) {
     where: { petId, tutorId, status: AppointmentStatus.COMPLETED },
     orderBy: { scheduledStart: 'desc' },
     include: { service: { select: { name: true } } },
+  })
+}
+
+/** Servicios activos ofrecidos al agendar (mismo filtro que /book). */
+export async function listBookableServices() {
+  return prisma.service.findMany({
+    where: { active: true },
+    select: { id: true, name: true, basePrice: true, standardDurationMin: true },
+    orderBy: { name: 'asc' },
   })
 }
 
