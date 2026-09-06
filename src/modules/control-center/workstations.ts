@@ -18,3 +18,14 @@ export async function createWorkstation(input: CreateWorkstationInput) {
 export async function setWorkstationActive(workstationId: string, active: boolean) {
   return prisma.workstation.update({ where: { id: workstationId }, data: { active } })
 }
+
+export interface UpdateWorkstationInput {
+  name: string
+  category: ServiceStageType
+  sortOrder?: number
+}
+
+/** Edición de una estación existente (Estandarización CRUD). */
+export async function updateWorkstation(workstationId: string, input: UpdateWorkstationInput) {
+  return prisma.workstation.update({ where: { id: workstationId }, data: input })
+}

@@ -58,6 +58,10 @@ export default async function TutorDetailPage({ params }: { params: Promise<{ tu
                   Dirección
                   <input name="address" defaultValue={tutor.address ?? ''} className="input mt-1 w-full" />
                 </label>
+                <label className="text-sm text-slate-700">
+                  Foto del cliente (URL)
+                  <input name="photoUrl" defaultValue={tutor.photoUrl ?? ''} placeholder="https://..." className="input mt-1 w-full" />
+                </label>
               </>
             }
             deleteLabel="Desactivar"

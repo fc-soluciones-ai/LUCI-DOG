@@ -33,9 +33,11 @@ export async function updateTutorAction(tutorId: string, formData: FormData) {
     phoneWhatsApp: String(formData.get('phoneWhatsApp')),
     email: str(formData, 'email'),
     address: str(formData, 'address'),
+    photoUrl: str(formData, 'photoUrl'),
   })
   revalidatePath('/admin/clientes')
   revalidatePath(`/admin/clientes/${tutorId}`)
+  revalidatePath('/dashboard-tv')
 }
 
 export async function deleteTutorAction(tutorId: string) {

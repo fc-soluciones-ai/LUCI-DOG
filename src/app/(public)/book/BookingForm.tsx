@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, type FormEvent } from 'react'
+import { formatCRC } from '@/lib/currency'
 
 interface Service {
   id: string
@@ -102,7 +103,7 @@ export function BookingForm({ services }: { services: Service[] }) {
           </option>
           {services.map((service) => (
             <option key={service.id} value={service.id}>
-              {service.name} — desde ${service.basePrice.toFixed(2)} ({service.standardDurationMin} min)
+              {service.name} — desde {formatCRC(service.basePrice)} ({service.standardDurationMin} min)
             </option>
           ))}
         </select>

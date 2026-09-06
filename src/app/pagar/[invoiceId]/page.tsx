@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { getInvoiceForProofPage } from '@/modules/billing/invoices'
 import { submitProofAction } from '@/modules/billing/actions'
+import { formatCRC } from '@/lib/currency'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,13 +31,13 @@ export default async function ProofPage({ params }: { params: Promise<{ invoiceI
           {invoice.items.map((item) => (
             <li key={item.id} className="flex justify-between">
               <span>{item.description}</span>
-              <span>${Number(item.amount).toFixed(2)}</span>
+              <span>{formatCRC(item.amount)}</span>
             </li>
           ))}
         </ul>
         <div className="mt-2 flex justify-between border-t border-slate-200 pt-2 font-medium text-slate-900">
           <span>Total</span>
-          <span>${Number(invoice.total).toFixed(2)}</span>
+          <span>{formatCRC(invoice.total)}</span>
         </div>
       </div>
 

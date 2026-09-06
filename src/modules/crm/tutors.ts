@@ -44,6 +44,7 @@ export interface UpdateTutorInput {
   phoneWhatsApp: string
   email?: string
   address?: string
+  photoUrl?: string
 }
 
 /** Edición de datos de contacto del dueño (Estandarización CRUD). */

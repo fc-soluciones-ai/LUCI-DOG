@@ -23,6 +23,7 @@ async function fetchPipelineAppointmentsForDay(start: Date, end: Date) {
     orderBy: { scheduledStart: 'asc' },
     include: {
       pet: { include: { photos: { where: { type: 'PROFILE' }, take: 1 } } },
+      tutor: { select: { fullName: true, photoUrl: true } },
       appointmentSteps: {
         orderBy: { orderIndex: 'asc' },
         include: {
@@ -40,6 +41,8 @@ export interface GanttBlock {
   appointmentId: string
   petName: string
   petPhotoUrl: string | null
+  tutorName: string
+  tutorPhotoUrl: string | null
   breed: string
   stageName: string
   workstationId: string | null
@@ -90,6 +93,8 @@ export async function getPipelineBoard() {
         appointmentId: appointment.id,
         petName: appointment.pet.name,
         petPhotoUrl: appointment.pet.photos[0]?.url ?? null,
+        tutorName: appointment.tutor.fullName,
+        tutorPhotoUrl: appointment.tutor.photoUrl,
         breed: appointment.pet.breed,
         stageName: step.processStep.name,
         workstationId: step.workstationId,

@@ -61,3 +61,15 @@ export async function createSubProcess(input: CreateSubProcessInput) {
 export async function deleteSubProcess(subProcessId: string) {
   return prisma.subProcess.delete({ where: { id: subProcessId } })
 }
+
+/** Reordena los subprocesos de una etapa tras un drag-and-drop en el admin. */
+export async function reorderSubProcesses(orderedIds: string[]) {
+  return prisma.$transaction(
+    orderedIds.map((id, index) => prisma.subProcess.update({ where: { id }, data: { order: index + 1 } }))
+  )
+}
+
+/** Edición en línea de la duración estándar de una etapa, sin abrir un formulario modal. */
+export async function updateProcessStepDuration(processStepId: string, standardDurationMin: number) {
+  return prisma.processStep.update({ where: { id: processStepId }, data: { standardDurationMin } })
+}

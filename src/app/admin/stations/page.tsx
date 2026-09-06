@@ -1,5 +1,6 @@
 import { listWorkstations } from '@/modules/control-center/workstations'
-import { createWorkstationAction, setWorkstationActiveAction } from '@/modules/control-center/actions'
+import { createWorkstationAction, setWorkstationActiveAction, updateWorkstationAction } from '@/modules/control-center/actions'
+import { DataTableActions } from '@/components/admin/DataTableActions'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,16 +36,50 @@ export default async function StationsAdminPage() {
               <p className="font-medium text-slate-900">{station.name}</p>
               <p className="text-sm text-slate-500">{STAGE_LABEL[station.category] ?? station.category}</p>
             </div>
-            <form action={setWorkstationActiveAction.bind(null, station.id, !station.active)}>
-              <button
-                type="submit"
-                className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                  station.active ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-500'
-                }`}
-              >
-                {station.active ? 'Activa' : 'Inactiva'}
-              </button>
-            </form>
+            <div className="flex items-center gap-3">
+              <form action={setWorkstationActiveAction.bind(null, station.id, !station.active)}>
+                <button
+                  type="submit"
+                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                    station.active ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-500'
+                  }`}
+                >
+                  {station.active ? 'Activa' : 'Inactiva'}
+                </button>
+              </form>
+              <DataTableActions
+                editLabel="Editar"
+                editTitle={`Editar estación — ${station.name}`}
+                editAction={updateWorkstationAction.bind(null, station.id)}
+                editFields={
+                  <>
+                    <label className="text-sm text-slate-700">
+                      Nombre
+                      <input name="name" required defaultValue={station.name} className="input mt-1 w-full" />
+                    </label>
+                    <label className="text-sm text-slate-700">
+                      Tipo
+                      <select name="category" defaultValue={station.category} className="input mt-1 w-full">
+                        {Object.entries(STAGE_LABEL).map(([value, label]) => (
+                          <option key={value} value={value}>
+                            {label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="text-sm text-slate-700">
+                      Orden
+                      <input name="sortOrder" type="number" defaultValue={station.sortOrder} className="input mt-1 w-full" />
+                    </label>
+                  </>
+                }
+                onDelete={async () => {
+                  'use server'
+                  await setWorkstationActiveAction(station.id, false)
+                }}
+                deleteConfirmText={`¿Eliminar "${station.name}"? Deja de ofrecerse para asignar citas y desaparece del Dashboard TV; puedes reactivarla luego con el botón de estado.`}
+              />
+            </div>
           </div>
         ))}
       </div>

@@ -157,16 +157,27 @@ export function TvBoard({ initialBoard, tvSession }: Props) {
                       } ${block.hasConflict ? 'ring-4 ring-yellow-300' : ''}`}
                       style={{ left: `${left}%`, width: `${width}%` }}
                     >
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/20 text-xl font-bold">
-                        {block.petPhotoUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={block.petPhotoUrl} alt={block.petName} className="h-full w-full object-cover" />
-                        ) : (
-                          petInitial(block.petName)
-                        )}
+                      <div className="relative h-12 w-12 shrink-0">
+                        <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-white/20 text-xl font-bold">
+                          {block.petPhotoUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={block.petPhotoUrl} alt={block.petName} className="h-full w-full object-cover" />
+                          ) : (
+                            petInitial(block.petName)
+                          )}
+                        </div>
+                        <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center overflow-hidden rounded-full border-2 border-slate-900 bg-white/30 text-[10px] font-bold">
+                          {block.tutorPhotoUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={block.tutorPhotoUrl} alt={block.tutorName} className="h-full w-full object-cover" />
+                          ) : (
+                            petInitial(block.tutorName)
+                          )}
+                        </div>
                       </div>
                       <div className="min-w-0">
                         <p className="truncate text-xl font-bold leading-tight">{block.petName}</p>
+                        <p className="truncate text-xs text-white/70">{block.tutorName}</p>
                         <p className="truncate text-sm text-white/80">
                           {block.breed} · {block.stageName}
                         </p>

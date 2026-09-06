@@ -1,4 +1,4 @@
-import { EquipmentType, ExpenseFrequency, InstrumentType, PrismaClient, Role, ServiceStageType } from '@prisma/client'
+import { ExpenseFrequency, InstrumentType, PrismaClient, Role, ServiceStageType } from '@prisma/client'
 
 const FIXED_EXPENSES: Array<{ name: string; category: string; amount: number; frequency: ExpenseFrequency }> = [
   { name: 'Renta del local', category: 'Renta', amount: 12000, frequency: ExpenseFrequency.MONTHLY },
@@ -110,9 +110,11 @@ const GROOMERS: Array<{ fullName: string; phone: string }> = [
   { fullName: 'Luis Fernández', phone: '+5215500000002' },
 ]
 
-const EQUIPMENT: Array<{ name: string; type: EquipmentType; purchaseCost: number; usefulLifeMonths: number }> = [
-  { name: 'Secador de gabinete #1', type: EquipmentType.DRYER, purchaseCost: 8500, usefulLifeMonths: 60 },
-  { name: 'Turbina de fuerza #1', type: EquipmentType.TURBINE, purchaseCost: 4200, usefulLifeMonths: 48 },
+const EQUIPMENT_CATEGORIES = ['Secador', 'Turbina', 'Máquina de corte', 'Mesa de trabajo', 'Otro']
+
+const EQUIPMENT: Array<{ name: string; categoryName: string; purchaseCost: number; usefulLifeMonths: number }> = [
+  { name: 'Secador de gabinete #1', categoryName: 'Secador', purchaseCost: 8500, usefulLifeMonths: 60 },
+  { name: 'Turbina de fuerza #1', categoryName: 'Turbina', purchaseCost: 4200, usefulLifeMonths: 48 },
 ]
 
 const INSTRUMENTS: Array<{ name: string; type: InstrumentType; expectedLifeHours: number }> = [
@@ -174,11 +176,18 @@ async function main() {
     instrumentsCreated++
   }
 
+  for (const [index, name] of EQUIPMENT_CATEGORIES.entries()) {
+    const exists = await prisma.equipmentCategory.findFirst({ where: { name } })
+    if (exists) continue
+    await prisma.equipmentCategory.create({ data: { name, sortOrder: index } })
+  }
+
   let equipmentCreated = 0
-  for (const item of EQUIPMENT) {
+  for (const { categoryName, ...item } of EQUIPMENT) {
     const exists = await prisma.equipment.findFirst({ where: { name: item.name } })
     if (exists) continue
-    await prisma.equipment.create({ data: { ...item, purchaseDate: new Date() } })
+    const category = await prisma.equipmentCategory.findFirstOrThrow({ where: { name: categoryName } })
+    await prisma.equipment.create({ data: { ...item, categoryId: category.id, purchaseDate: new Date() } })
     equipmentCreated++
   }
 

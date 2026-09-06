@@ -127,14 +127,6 @@ enum InstrumentStatus {
   RETIRED
 }
 
-enum EquipmentType {
-  DRYER
-  TURBINE
-  CLIPPER_MACHINE
-  GROOMING_TABLE
-  OTHER
-}
-
 enum EquipmentStatus {
   OPERATIONAL
   NEEDS_MAINTENANCE
@@ -179,6 +171,7 @@ model Tutor {
   email              String?
   address            String?
   addressMapUrl      String?
+  photoUrl           String? // foto de perfil, mostrada en las tarjetas del Dashboard TV
   billingStatus      BillingStatus @default(PAID)
   antiFraudConsentAt DateTime? // aceptación de cláusula "cotización estimada"
   deletedAt          DateTime? // soft delete
@@ -549,24 +542,38 @@ model InstrumentUsageLog {
 
 // Equipos mecánicos (turbinas, secadores, máquinas) — activos fijos con depreciación
 model Equipment {
-  id                 String          @id @default(cuid())
-  name               String
-  brand              String?
-  model              String?
-  serialNumber       String?
-  notes              String? // ficha técnica / observaciones
-  type               EquipmentType
-  purchaseDate       DateTime
-  purchaseCost       Decimal         @db.Decimal(10, 2)
-  usefulLifeMonths   Int
-  status             EquipmentStatus @default(OPERATIONAL)
-  lastMaintenanceAt  DateTime?
-  nextMaintenanceDue DateTime?
-  deletedAt          DateTime? // soft delete
+  id                         String          @id @default(cuid())
+  name                       String
+  brand                      String?
+  model                      String?
+  serialNumber               String?
+  notes                      String? // ficha técnica / observaciones
+  categoryId                 String?
+  supplier                   String?
+  purchaseDate               DateTime
+  purchaseCost               Decimal         @db.Decimal(10, 2)
+  usefulLifeMonths           Int
+  maintenanceFrequencyMonths Int?
+  status                     EquipmentStatus @default(OPERATIONAL)
+  lastMaintenanceAt          DateTime?
+  nextMaintenanceDue         DateTime?
+  deletedAt                  DateTime? // soft delete
 
+  category        EquipmentCategory? @relation(fields: [categoryId], references: [id])
   maintenanceLogs MaintenanceLog[]
 
   @@index([deletedAt])
+  @@index([categoryId])
+}
+
+// Catálogo administrable de tipos de equipo (Módulo de Configuración).
+model EquipmentCategory {
+  id        String  @id @default(cuid())
+  name      String  @unique
+  active    Boolean @default(true)
+  sortOrder Int     @default(0)
+
+  equipment Equipment[]
 }
 
 model MaintenanceLog {

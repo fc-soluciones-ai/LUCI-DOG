@@ -1,11 +1,14 @@
-import { EquipmentStatus, type EquipmentType } from '@prisma/client'
+import { EquipmentStatus } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 
 export async function listEquipment() {
   const equipment = await prisma.equipment.findMany({
     where: { deletedAt: null },
     orderBy: { name: 'asc' },
-    include: { maintenanceLogs: { orderBy: { performedAt: 'desc' }, take: 3 } },
+    include: {
+      category: true,
+      maintenanceLogs: { orderBy: { performedAt: 'desc' }, take: 3 },
+    },
   })
   const now = new Date()
   return equipment.map((item) => ({
@@ -16,13 +19,16 @@ export async function listEquipment() {
 
 export interface CreateEquipmentInput {
   name: string
-  type: EquipmentType
+  categoryId?: string
+  supplier?: string
+  purchaseDate?: Date
   purchaseCost: number
   usefulLifeMonths: number
+  maintenanceFrequencyMonths?: number
 }
 
 export async function createEquipment(input: CreateEquipmentInput) {
-  return prisma.equipment.create({ data: { ...input, purchaseDate: new Date() } })
+  return prisma.equipment.create({ data: { ...input, purchaseDate: input.purchaseDate ?? new Date() } })
 }
 
 /** Registra un mantenimiento técnico y reprograma el próximo (Módulo 5). */
@@ -53,6 +59,9 @@ export interface UpdateEquipmentInput {
   brand?: string
   model?: string
   serialNumber?: string
+  categoryId?: string
+  supplier?: string
+  maintenanceFrequencyMonths?: number
   status: EquipmentStatus
   lastMaintenanceAt?: Date
   notes?: string
@@ -66,4 +75,54 @@ export async function updateEquipment(equipmentId: string, input: UpdateEquipmen
 /** Borrado lógico: el equipo deja de listarse pero conserva su historial de mantenimiento. */
 export async function softDeleteEquipment(equipmentId: string) {
   return prisma.equipment.update({ where: { id: equipmentId }, data: { deletedAt: new Date() } })
+}
+
+function addMonths(date: Date, months: number) {
+  const result = new Date(date)
+  result.setMonth(result.getMonth() + months)
+  return result
+}
+
+export interface MaintenanceAlert {
+  equipmentId: string
+  name: string
+  dueDate: Date
+  isOverdue: boolean
+}
+
+/**
+ * Próximos mantenimientos dentro de `withinDays` días (o ya vencidos). Prioriza
+ * `nextMaintenanceDue` (fijado por logMaintenance); si el equipo nunca tuvo un
+ * mantenimiento registrado, lo estima desde purchaseDate + maintenanceFrequencyMonths.
+ */
+export async function getUpcomingMaintenanceAlerts(withinDays = 14): Promise<MaintenanceAlert[]> {
+  const equipment = await prisma.equipment.findMany({
+    where: { deletedAt: null },
+    select: {
+      id: true,
+      name: true,
+      purchaseDate: true,
+      lastMaintenanceAt: true,
+      nextMaintenanceDue: true,
+      maintenanceFrequencyMonths: true,
+    },
+  })
+
+  const now = new Date()
+  const horizon = new Date(now.getTime() + withinDays * 24 * 60 * 60 * 1000)
+  const alerts: MaintenanceAlert[] = []
+
+  for (const item of equipment) {
+    const dueDate =
+      item.nextMaintenanceDue ??
+      (item.maintenanceFrequencyMonths
+        ? addMonths(item.lastMaintenanceAt ?? item.purchaseDate, item.maintenanceFrequencyMonths)
+        : null)
+
+    if (!dueDate || dueDate > horizon) continue
+
+    alerts.push({ equipmentId: item.id, name: item.name, dueDate, isOverdue: dueDate < now })
+  }
+
+  return alerts.sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())
 }

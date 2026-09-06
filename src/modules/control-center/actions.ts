@@ -2,14 +2,16 @@
 
 import { revalidatePath } from 'next/cache'
 import type { ServiceStageType } from '@prisma/client'
-import { createWorkstation, setWorkstationActive } from './workstations'
+import { createWorkstation, setWorkstationActive, updateWorkstation } from './workstations'
 import {
   createPipeline,
   createProcessStep,
   createSubProcess,
   deleteProcessStep,
   deleteSubProcess,
+  reorderSubProcesses,
   setPipelineActive,
+  updateProcessStepDuration,
 } from './pipelines'
 import {
   assignWorkstation,
@@ -42,7 +44,16 @@ export async function setWorkstationActiveAction(workstationId: string, active: 
   revalidatePath('/admin/stations')
 }
 
-// --- Admin: Pipelines ---
+export async function updateWorkstationAction(workstationId: string, formData: FormData) {
+  await updateWorkstation(workstationId, {
+    name: String(formData.get('name')),
+    category: formData.get('category') as ServiceStageType,
+    sortOrder: num(formData, 'sortOrder') ?? 0,
+  })
+  revalidatePath('/admin/stations')
+}
+
+// --- Admin: Procesos (pipelines) ---
 
 export async function createPipelineAction(formData: FormData) {
   await createPipeline({
@@ -50,12 +61,12 @@ export async function createPipelineAction(formData: FormData) {
     description: (formData.get('description') as string) || undefined,
     serviceId: (formData.get('serviceId') as string) || undefined,
   })
-  revalidatePath('/admin/pipelines')
+  revalidatePath('/admin/procesos')
 }
 
 export async function setPipelineActiveAction(pipelineId: string, active: boolean) {
   await setPipelineActive(pipelineId, active)
-  revalidatePath('/admin/pipelines')
+  revalidatePath('/admin/procesos')
 }
 
 export async function createProcessStepAction(pipelineId: string, formData: FormData) {
@@ -66,12 +77,17 @@ export async function createProcessStepAction(pipelineId: string, formData: Form
     stageType: formData.get('stageType') as ServiceStageType,
     standardDurationMin: num(formData, 'standardDurationMin') ?? 30,
   })
-  revalidatePath('/admin/pipelines')
+  revalidatePath('/admin/procesos')
 }
 
 export async function deleteProcessStepAction(processStepId: string) {
   await deleteProcessStep(processStepId)
-  revalidatePath('/admin/pipelines')
+  revalidatePath('/admin/procesos')
+}
+
+export async function updateProcessStepDurationAction(processStepId: string, standardDurationMin: number) {
+  await updateProcessStepDuration(processStepId, standardDurationMin)
+  revalidatePath('/admin/procesos')
 }
 
 export async function createSubProcessAction(processStepId: string, formData: FormData) {
@@ -80,12 +96,17 @@ export async function createSubProcessAction(processStepId: string, formData: Fo
     name: String(formData.get('name')),
     order: num(formData, 'order') ?? 1,
   })
-  revalidatePath('/admin/pipelines')
+  revalidatePath('/admin/procesos')
 }
 
 export async function deleteSubProcessAction(subProcessId: string) {
   await deleteSubProcess(subProcessId)
-  revalidatePath('/admin/pipelines')
+  revalidatePath('/admin/procesos')
+}
+
+export async function reorderSubProcessesAction(orderedIds: string[]) {
+  await reorderSubProcesses(orderedIds)
+  revalidatePath('/admin/procesos')
 }
 
 // --- Operación de piso (Control Center) ---

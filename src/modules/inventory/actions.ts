@@ -1,7 +1,7 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { EquipmentStatus, EquipmentType, InstrumentType, ProductUnit } from '@prisma/client'
+import { EquipmentStatus, InstrumentType, ProductUnit } from '@prisma/client'
 import { createEquipment, flagEquipmentStatus, logMaintenance, softDeleteEquipment, updateEquipment } from './equipment'
 import { createInstrument, markInstrumentSharpened, retireInstrument } from './instruments'
 import { createProduct, restockProduct, softDeleteProduct, updateProduct } from './products'
@@ -72,9 +72,12 @@ export async function retireInstrumentAction(instrumentId: string) {
 export async function createEquipmentAction(formData: FormData) {
   await createEquipment({
     name: String(formData.get('name')),
-    type: formData.get('type') as EquipmentType,
+    categoryId: (formData.get('categoryId') as string) || undefined,
+    supplier: (formData.get('supplier') as string) || undefined,
+    purchaseDate: formData.get('purchaseDate') ? new Date(String(formData.get('purchaseDate'))) : undefined,
     purchaseCost: num(formData, 'purchaseCost') ?? 0,
     usefulLifeMonths: num(formData, 'usefulLifeMonths') ?? 12,
+    maintenanceFrequencyMonths: num(formData, 'maintenanceFrequencyMonths'),
   })
   revalidatePath('/admin/equipos')
 }
@@ -99,6 +102,9 @@ export async function updateEquipmentAction(equipmentId: string, formData: FormD
     brand: (formData.get('brand') as string) || undefined,
     model: (formData.get('model') as string) || undefined,
     serialNumber: (formData.get('serialNumber') as string) || undefined,
+    categoryId: (formData.get('categoryId') as string) || undefined,
+    supplier: (formData.get('supplier') as string) || undefined,
+    maintenanceFrequencyMonths: num(formData, 'maintenanceFrequencyMonths'),
     status: formData.get('status') as EquipmentStatus,
     lastMaintenanceAt: formData.get('lastMaintenanceAt') ? new Date(String(formData.get('lastMaintenanceAt'))) : undefined,
     notes: (formData.get('notes') as string) || undefined,

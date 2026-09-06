@@ -8,11 +8,12 @@ import {
 } from '@/modules/finance/reports'
 import { listFixedExpenses } from '@/modules/finance/expenses'
 import { createFixedExpenseAction, setFixedExpenseActiveAction } from '@/modules/finance/actions'
+import { formatCRC } from '@/lib/currency'
 
 export const dynamic = 'force-dynamic'
 
 function money(n: number) {
-  return `$${n.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  return formatCRC(n)
 }
 
 function pct(n: number) {

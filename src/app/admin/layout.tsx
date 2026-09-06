@@ -36,8 +36,14 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             <Link href="/admin/stations" className="hover:text-slate-900">
               Estaciones
             </Link>
-            <Link href="/admin/pipelines" className="hover:text-slate-900">
-              Pipelines
+            <Link href="/admin/servicios" className="hover:text-slate-900">
+              Servicios
+            </Link>
+            <Link href="/admin/procesos" className="hover:text-slate-900">
+              Procesos
+            </Link>
+            <Link href="/admin/configuracion" className="hover:text-slate-900">
+              Configuración
             </Link>
             <Link href="/admin/usuarios" className="hover:text-slate-900">
               Usuarios
