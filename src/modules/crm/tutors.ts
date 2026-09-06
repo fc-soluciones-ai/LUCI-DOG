@@ -24,6 +24,7 @@ export async function getTutorProfile(tutorId: string) {
     where: { id: tutorId },
     include: {
       pets: { where: { active: true }, orderBy: { createdAt: 'desc' } },
+      profile: true,
     },
   })
 }

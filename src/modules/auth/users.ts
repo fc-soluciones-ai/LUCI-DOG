@@ -62,6 +62,48 @@ export async function setProfileActive(profileId: string, active: boolean) {
   return prisma.profile.update({ where: { id: profileId }, data: { active } })
 }
 
+/**
+ * Da de alta el acceso al Portal del Cliente para un tutor existente (Fase 2).
+ * No hay autoservicio (sin OTP/email transaccional propio): el admin genera la
+ * cuenta desde la ficha del tutor y comparte el password temporal por WhatsApp.
+ */
+export async function createClientUser(tutorId: string) {
+  const tutor = await prisma.tutor.findUniqueOrThrow({ where: { id: tutorId }, include: { profile: true } })
+
+  if (tutor.profile) {
+    throw new Error('Este tutor ya tiene acceso al portal.')
+  }
+  if (!tutor.email) {
+    throw new Error('El tutor necesita un correo guardado antes de poder darle acceso al portal.')
+  }
+
+  const tempPassword = randomTempPassword()
+  const admin = createSupabaseAdminClient()
+
+  const { data, error } = await admin.auth.admin.createUser({
+    email: tutor.email,
+    password: tempPassword,
+    email_confirm: true,
+    user_metadata: { fullName: tutor.fullName, role: 'CLIENT' },
+  })
+
+  if (error || !data.user) {
+    throw new Error(error?.message ?? 'No se pudo crear la cuenta en Supabase Auth.')
+  }
+
+  await prisma.profile.create({
+    data: {
+      id: data.user.id,
+      email: tutor.email,
+      fullName: tutor.fullName,
+      role: UserRole.CLIENT,
+      tutorId: tutor.id,
+    },
+  })
+
+  return { tempPassword, email: tutor.email }
+}
+
 export interface UpdateProfileInput {
   fullName: string
   email: string

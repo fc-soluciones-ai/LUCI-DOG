@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { getTutorProfile } from '@/modules/crm/tutors'
 import { createPetAction, deactivatePetAction, deleteTutorAction, updateTutorAction } from '@/modules/crm/actions'
 import { DataTableActions } from '@/components/admin/DataTableActions'
+import { GivePortalAccessButton } from '@/components/admin/GivePortalAccessButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -70,6 +71,20 @@ export default async function TutorDetailPage({ params }: { params: Promise<{ tu
               'use server'
               await deleteTutorAction(tutor.id)
             }}
+          />
+        </div>
+      </div>
+
+      <div className="mt-8 rounded-lg border border-slate-200 bg-white p-4">
+        <h2 className="text-lg font-medium text-slate-900">Acceso al portal</h2>
+        <div className="mt-2">
+          <GivePortalAccessButton
+            tutorId={tutor.id}
+            hasAccess={Boolean(tutor.profile)}
+            profileId={tutor.profile?.id}
+            active={tutor.profile?.active}
+            email={tutor.profile?.email}
+            canCreate={Boolean(tutor.email)}
           />
         </div>
       </div>

@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { homePathForRole } from './profile'
-import { createStaffUser, setProfileActive, updateProfile } from './users'
+import { createClientUser, createStaffUser, setProfileActive, updateProfile } from './users'
 
 export async function signInAction(formData: FormData) {
   const email = String(formData.get('email') ?? '').trim()
@@ -89,4 +89,23 @@ export async function updateProfileAction(profileId: string, formData: FormData)
 
   await updateProfile(profileId, { fullName, email, role })
   revalidatePath('/admin/usuarios')
+}
+
+export async function createClientUserAction(
+  tutorId: string,
+  _prevState: CreateUserActionState,
+  _formData: FormData
+): Promise<CreateUserActionState> {
+  try {
+    const result = await createClientUser(tutorId)
+    revalidatePath(`/admin/clientes/${tutorId}`)
+    return {
+      ok: true,
+      message: `Acceso creado para ${result.email}. Comparte este password temporal por WhatsApp — no se volverá a mostrar.`,
+      tempPassword: result.tempPassword,
+      email: result.email,
+    }
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : 'No se pudo crear el acceso.' }
+  }
 }
