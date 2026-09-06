@@ -82,3 +82,12 @@ export async function uploadPetPhoto(file: File): Promise<UploadedFile> {
 export async function deletePetPhotoFile(path: string): Promise<void> {
   return deleteFromBucket('pets-photos', path)
 }
+
+/** Logo / favicon / ícono de PWA del White Label (bucket `branding-assets`). */
+export async function uploadBrandingAsset(file: File): Promise<UploadedFile> {
+  return uploadToBucket('branding-assets', file, IMAGE_TYPES)
+}
+
+export async function deleteBrandingAssetFile(path: string): Promise<void> {
+  return deleteFromBucket('branding-assets', path)
+}

@@ -1,7 +1,34 @@
 @import "tailwindcss";
 
+@layer base {
+  :root {
+    /* Defaults = los mismos valores que ya usaba la app (slate-900/500/sky-500)
+       antes del White Label — sin config de marca, nada cambia visualmente. */
+    --brand-primary: #0f172a;
+    --brand-secondary: #64748b;
+    --brand-accent: #0ea5e9;
+  }
+}
+
 @layer components {
   .input {
     @apply w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-slate-500 focus:outline-none;
+  }
+}
+
+/*
+ * White Label: casi todos los botones/headers "de marca" de la app ya usan
+ * bg-slate-900 como fondo del CTA primario — en vez de reescribir cada botón,
+ * redirigimos ESA clase (solo el fondo) a la variable de marca. Deliberadamente
+ * NO se toca text-slate-900/border-slate-900: esas se usan por toda la app
+ * como color de texto/borde por defecto para legibilidad, no como "marca" —
+ * redirigirlas rompería el contraste del texto normal si el admin elige un
+ * primario claro. BrandingProvider sobreescribe --brand-primary con el color
+ * configurado; sin configuración, = #0f172a = el mismo slate-900 de siempre,
+ * así que esto es un no-op hasta que alguien lo cambie.
+ */
+@layer utilities {
+  .bg-slate-900 {
+    background-color: var(--brand-primary);
   }
 }

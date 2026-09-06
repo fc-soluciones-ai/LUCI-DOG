@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { getInvoiceForProofPage } from '@/modules/billing/invoices'
 import { submitProofAction } from '@/modules/billing/actions'
 import { formatCRC } from '@/lib/currency'
+import { getBranding } from '@/modules/config/branding'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,7 +14,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default async function ProofPage({ params }: { params: Promise<{ invoiceId: string }> }) {
   const { invoiceId } = await params
-  const invoice = await getInvoiceForProofPage(invoiceId)
+  const [invoice, branding] = await Promise.all([getInvoiceForProofPage(invoiceId), getBranding()])
   if (!invoice) notFound()
 
   const alreadyPaid = invoice.status === 'PAID'
@@ -66,6 +67,10 @@ export default async function ProofPage({ params }: { params: Promise<{ invoiceI
             </p>
           )}
         </form>
+      )}
+
+      {branding.invoiceFooterText && (
+        <p className="mt-8 whitespace-pre-line text-center text-xs text-slate-400">{branding.invoiceFooterText}</p>
       )}
     </main>
   )

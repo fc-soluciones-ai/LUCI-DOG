@@ -2,6 +2,8 @@
 // cae automáticamente a ConsoleWhatsAppProvider (imprime el mensaje en consola)
 // para poder desarrollar y probar el flujo de notificaciones sin cuenta real.
 
+import { getBranding } from '@/modules/config/branding'
+
 export interface WhatsAppMessage {
   to: string
   templateName: string
@@ -29,7 +31,34 @@ const TEMPLATES: Record<string, (vars: Record<string, string>) => string> = {
     `Aviso: tu cita para ${v.petName} podría retrasarse por el Efecto en Cadena de citas anteriores. Te avisaremos la nueva hora estimada, disculpa la demora.`,
 }
 
-function renderTemplate(name: string, vars: Record<string, string>): string {
+// Nombres en español que el admin puede escribir en sus plantillas personalizadas
+// (ej. "{nombre_cliente}"), mapeados a las claves internas reales de cada template.
+const SPANISH_VAR_ALIASES: Record<string, string> = {
+  nombre_cliente: 'tutorName',
+  nombre_perro: 'petName',
+  fecha_cita: 'date',
+  link_pago: 'proofLink',
+}
+
+function withSpanishAliases(vars: Record<string, string>): Record<string, string> {
+  const merged = { ...vars }
+  for (const [alias, original] of Object.entries(SPANISH_VAR_ALIASES)) {
+    if (vars[original] !== undefined) merged[alias] = vars[original]
+  }
+  return merged
+}
+
+/** Sustituye {clave} por vars.clave en una plantilla de White Label editada por el admin. */
+function renderCustomTemplate(template: string, vars: Record<string, string>): string {
+  const merged = withSpanishAliases(vars)
+  return template.replace(/\{(\w+)\}/g, (match, key: string) => merged[key] ?? match)
+}
+
+async function renderTemplate(name: string, vars: Record<string, string>): Promise<string> {
+  const branding = await getBranding()
+  const override = branding.whatsappTemplates[name]
+  if (override) return renderCustomTemplate(override, vars)
+
   const render = TEMPLATES[name]
   if (!render) throw new Error(`Plantilla de WhatsApp desconocida: ${name}`)
   return render(vars)
@@ -38,7 +67,8 @@ function renderTemplate(name: string, vars: Record<string, string>): string {
 class ConsoleWhatsAppProvider implements WhatsAppProvider {
   async send(message: WhatsAppMessage): Promise<WhatsAppSendResult> {
     const mediaLine = message.mediaUrl ? `\n[imagen adjunta: ${message.mediaUrl}]` : ''
-    console.log(`[WhatsApp:dev -> ${message.to}] ${renderTemplate(message.templateName, message.variables)}${mediaLine}`)
+    const body = await renderTemplate(message.templateName, message.variables)
+    console.log(`[WhatsApp:dev -> ${message.to}] ${body}${mediaLine}`)
     return { providerMessageId: `console-${Date.now()}` }
   }
 }
@@ -51,10 +81,11 @@ class TwilioWhatsAppProvider implements WhatsAppProvider {
   ) {}
 
   async send(message: WhatsAppMessage): Promise<WhatsAppSendResult> {
+    const renderedBody = await renderTemplate(message.templateName, message.variables)
     const body = new URLSearchParams({
       To: `whatsapp:${message.to}`,
       From: `whatsapp:${this.fromNumber}`,
-      Body: renderTemplate(message.templateName, message.variables),
+      Body: renderedBody,
     })
     if (message.mediaUrl) {
       body.append('MediaUrl', message.mediaUrl)

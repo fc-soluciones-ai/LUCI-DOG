@@ -79,6 +79,7 @@ export async function closeServiceAndInvoice(input: CloseServiceInput) {
     templateName: 'RECEIPT',
     mediaUrl: input.finishedPhotoUrl,
     variables: {
+      tutorName: appointment.tutor.fullName,
       petName: appointment.pet.name,
       total: subtotal.toFixed(2),
       paymentInfo: input.markPaidNow ? 'Pagado en el salón. ¡Gracias!' : paymentInfoText,

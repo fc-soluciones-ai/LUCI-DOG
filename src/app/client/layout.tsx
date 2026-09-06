@@ -4,25 +4,37 @@ import type { ReactNode } from 'react'
 import { requireRole } from '@/modules/auth/profile'
 import { signOutAction } from '@/modules/auth/actions'
 import { RegisterServiceWorker } from '@/components/client/RegisterServiceWorker'
+import { getBranding } from '@/modules/config/branding'
 
-export const metadata: Metadata = {
-  manifest: '/manifest.json',
-  icons: { icon: '/icons/icon-192.png', apple: '/icons/icon-192.png' },
+export async function generateMetadata(): Promise<Metadata> {
+  const branding = await getBranding()
+  const icon = branding.appIconUrl ?? '/icons/icon-192.png'
+  return {
+    manifest: '/api/client-manifest',
+    icons: { icon, apple: icon },
+  }
 }
 
-export const viewport: Viewport = {
-  themeColor: '#0f172a',
+export async function generateViewport(): Promise<Viewport> {
+  const branding = await getBranding()
+  return { themeColor: branding.primaryColor }
 }
 
 export default async function ClientLayout({ children }: { children: ReactNode }) {
-  const profile = await requireRole(['CLIENT'])
+  const [profile, branding] = await Promise.all([requireRole(['CLIENT']), getBranding()])
 
   return (
     <div className="min-h-screen">
       <RegisterServiceWorker />
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
-          <span className="font-semibold text-slate-900">GroomingOS</span>
+          <span className="flex items-center gap-2 font-semibold text-slate-900">
+            {branding.logoUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={branding.logoUrl} alt={branding.businessName} className="h-7 w-7 rounded object-contain" />
+            )}
+            {branding.businessName}
+          </span>
           <nav className="flex flex-wrap gap-4 text-sm text-slate-600">
             <Link href="/client" className="hover:text-slate-900">
               Inicio

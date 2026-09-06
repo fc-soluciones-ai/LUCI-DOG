@@ -2,15 +2,22 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { requireRole } from '@/modules/auth/profile'
 import { signOutAction } from '@/modules/auth/actions'
+import { getBranding } from '@/modules/config/branding'
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
-  const profile = await requireRole(['ADMIN'])
+  const [profile, branding] = await Promise.all([requireRole(['ADMIN']), getBranding()])
 
   return (
     <div className="min-h-screen">
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
-          <span className="font-semibold text-slate-900">GroomingOS</span>
+          <span className="flex items-center gap-2 font-semibold text-slate-900">
+            {branding.logoUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={branding.logoUrl} alt={branding.businessName} className="h-7 w-7 rounded object-contain" />
+            )}
+            {branding.businessName}
+          </span>
           <nav className="flex flex-wrap gap-4 text-sm text-slate-600">
             <Link href="/groomer" className="hover:text-slate-900">
               Piso (Groomer)
@@ -44,6 +51,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             </Link>
             <Link href="/admin/configuracion" className="hover:text-slate-900">
               Configuración
+            </Link>
+            <Link href="/admin/configuracion/branding" className="hover:text-slate-900">
+              Marca
             </Link>
             <Link href="/admin/usuarios" className="hover:text-slate-900">
               Usuarios

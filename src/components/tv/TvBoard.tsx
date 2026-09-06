@@ -55,9 +55,11 @@ function liveStatus(elapsedSeconds: number, standardDurationMin: number): keyof 
 interface Props {
   initialBoard: PipelineBoard
   tvSession: RealtimeAuthSession | null
+  businessName: string
+  logoUrl: string | null
 }
 
-export function TvBoard({ initialBoard, tvSession }: Props) {
+export function TvBoard({ initialBoard, tvSession, businessName, logoUrl }: Props) {
   const [board, setBoard] = useState(initialBoard)
   // `now` arranca en null (server-safe) y solo se llena tras montar en el
   // cliente — evita mismatches de hidratación por usar `new Date()` al renderizar.
@@ -91,7 +93,13 @@ export function TvBoard({ initialBoard, tvSession }: Props) {
   return (
     <div className="fixed inset-0 flex flex-col overflow-hidden bg-slate-950 p-6 text-white">
       <header className="flex items-center justify-between pb-4">
-        <h1 className="text-4xl font-bold tracking-tight">GroomingOS — Piso de trabajo</h1>
+        <h1 className="flex items-center gap-3 text-4xl font-bold tracking-tight">
+          {logoUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logoUrl} alt={businessName} className="h-10 w-10 rounded object-contain" />
+          )}
+          {businessName} — Piso de trabajo
+        </h1>
         <p className="text-3xl font-mono tabular-nums text-slate-300">
           {now ? now.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '--:--:--'}
         </p>

@@ -590,6 +590,32 @@ model AppSettings {
   updatedAt       DateTime @updatedAt
 }
 
+// White Label de un solo tenant: un único registro con la identidad de marca
+// del estudio contratante (nombre, logo, colores, plantillas). Editable desde
+// /admin/configuracion/branding — no confundir con multi-tenant (eso requeriría
+// tenantId por tabla + RLS por tenant, deliberadamente fuera de alcance).
+model TenantBranding {
+  id                String   @id @default("default")
+  businessName      String   @default("GroomingOS")
+  slogan            String?
+  officialPhone     String?
+  address           String?
+  currencyCode      String   @default("CRC") // ISO 4217
+  socialLinks       Json? // { instagram?, facebook?, tiktok?, whatsapp? }
+  logoUrl           String?
+  logoPath          String?
+  faviconUrl        String?
+  faviconPath       String?
+  appIconUrl        String? // ícono de instalación del Portal del Cliente (PWA)
+  appIconPath       String?
+  primaryColor      String   @default("#0f172a")
+  secondaryColor    String   @default("#64748b")
+  accentColor       String   @default("#0ea5e9")
+  invoiceFooterText String?
+  whatsappTemplates Json? // overrides opcionales por templateName, ej. { "RECEIPT": "..." }
+  updatedAt         DateTime @updatedAt
+}
+
 model MaintenanceLog {
   id            String   @id @default(cuid())
   equipmentId   String
