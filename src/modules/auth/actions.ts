@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { homePathForRole } from './profile'
-import { createStaffUser, setProfileActive } from './users'
+import { createStaffUser, setProfileActive, updateProfile } from './users'
 
 export async function signInAction(formData: FormData) {
   const email = String(formData.get('email') ?? '').trim()
@@ -78,5 +78,15 @@ export async function createStaffUserAction(
 
 export async function setProfileActiveAction(profileId: string, active: boolean) {
   await setProfileActive(profileId, active)
+  revalidatePath('/admin/usuarios')
+}
+
+export async function updateProfileAction(profileId: string, formData: FormData) {
+  const fullName = String(formData.get('fullName') ?? '').trim()
+  const email = String(formData.get('email') ?? '').trim()
+  const role = formData.get('role') === 'ADMIN' ? 'ADMIN' : 'GROOMER'
+  if (!fullName || !email) return
+
+  await updateProfile(profileId, { fullName, email, role })
   revalidatePath('/admin/usuarios')
 }

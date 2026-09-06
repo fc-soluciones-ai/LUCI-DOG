@@ -4,10 +4,12 @@ import type { SensitivityLevel } from '@prisma/client'
 import { getCosmeticHistory, getPetProfile } from '@/modules/crm/pets'
 import {
   addPetPhotoAction,
+  deactivatePetAction,
   deletePetPhotoAction,
   updateBiometricsAction,
   upsertClinicalRecordAction,
 } from '@/modules/crm/actions'
+import { DataTableActions } from '@/components/admin/DataTableActions'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,12 +29,22 @@ export default async function PetProfilePage({ params }: { params: Promise<{ pet
 
   return (
     <div className="space-y-10">
-      <div>
-        <Link href={`/admin/clientes/${pet.tutorId}`} className="text-sm text-slate-500 hover:text-slate-900">
-          ← {pet.tutor.fullName}
-        </Link>
-        <h1 className="mt-2 text-2xl font-semibold text-slate-900">{pet.name}</h1>
-        <p className="text-slate-600">{pet.breed}</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <Link href={`/admin/clientes/${pet.tutorId}`} className="text-sm text-slate-500 hover:text-slate-900">
+            ← {pet.tutor.fullName}
+          </Link>
+          <h1 className="mt-2 text-2xl font-semibold text-slate-900">{pet.name}</h1>
+          <p className="text-slate-600">{pet.breed}</p>
+        </div>
+        <DataTableActions
+          deleteLabel="Desactivar mascota"
+          deleteConfirmText={`¿Desactivar a "${pet.name}"? Se conservará su historial de citas y facturas.`}
+          onDelete={async () => {
+            'use server'
+            await deactivatePetAction(pet.id, pet.tutorId)
+          }}
+        />
       </div>
 
       <section>
@@ -83,6 +95,12 @@ export default async function PetProfilePage({ params }: { params: Promise<{ pet
             name="allergies"
             defaultValue={pet.clinicalRecord?.allergies.join(', ') ?? ''}
             placeholder="Alergias (separadas por coma)"
+            className="input sm:col-span-2"
+          />
+          <input
+            name="vaccinations"
+            defaultValue={pet.clinicalRecord?.vaccinations.join(', ') ?? ''}
+            placeholder="Vacunas (separadas por coma)"
             className="input sm:col-span-2"
           />
           <label className="text-sm text-slate-600">

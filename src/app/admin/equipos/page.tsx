@@ -1,5 +1,12 @@
 import { listEquipment } from '@/modules/inventory/equipment'
-import { createEquipmentAction, flagEquipmentStatusAction, logMaintenanceAction } from '@/modules/inventory/actions'
+import {
+  createEquipmentAction,
+  deleteEquipmentAction,
+  flagEquipmentStatusAction,
+  logMaintenanceAction,
+  updateEquipmentAction,
+} from '@/modules/inventory/actions'
+import { DataTableActions } from '@/components/admin/DataTableActions'
 
 export const dynamic = 'force-dynamic'
 
@@ -49,6 +56,92 @@ export default async function EquiposPage() {
                 <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_COLOR[item.status]}`}>
                   {STATUS_LABEL[item.status]}
                 </span>
+                <DataTableActions
+                  viewLabel="Ver Ficha Técnica"
+                  viewModalTitle={`Ficha técnica — ${item.name}`}
+                  viewModal={
+                    <dl className="space-y-2 text-sm">
+                      <div className="flex justify-between"><dt className="text-slate-500">Marca</dt><dd className="text-slate-900">{item.brand ?? '—'}</dd></div>
+                      <div className="flex justify-between"><dt className="text-slate-500">Modelo</dt><dd className="text-slate-900">{item.model ?? '—'}</dd></div>
+                      <div className="flex justify-between"><dt className="text-slate-500">Número de serie</dt><dd className="text-slate-900">{item.serialNumber ?? '—'}</dd></div>
+                      <div className="flex justify-between"><dt className="text-slate-500">Costo de compra</dt><dd className="text-slate-900">{item.purchaseCost ? `$${item.purchaseCost.toString()}` : '—'}</dd></div>
+                      <div className="flex justify-between"><dt className="text-slate-500">Vida útil</dt><dd className="text-slate-900">{item.usefulLifeMonths ? `${item.usefulLifeMonths} meses` : '—'}</dd></div>
+                      {item.notes && (
+                        <div>
+                          <dt className="text-slate-500">Observaciones</dt>
+                          <dd className="mt-1 whitespace-pre-wrap text-slate-900">{item.notes}</dd>
+                        </div>
+                      )}
+                      {item.maintenanceLogs.length > 0 && (
+                        <div>
+                          <dt className="text-slate-500">Historial de mantenimiento</dt>
+                          <dd>
+                            <ul className="mt-1 space-y-1 text-slate-900">
+                              {item.maintenanceLogs.map((log) => (
+                                <li key={log.id}>
+                                  {log.performedAt.toLocaleDateString('es-MX', { dateStyle: 'short' })} — {log.description}
+                                </li>
+                              ))}
+                            </ul>
+                          </dd>
+                        </div>
+                      )}
+                    </dl>
+                  }
+                  editLabel="Editar"
+                  editTitle={`Editar equipo — ${item.name}`}
+                  editAction={updateEquipmentAction.bind(null, item.id)}
+                  editFields={
+                    <>
+                      <label className="text-sm text-slate-700">
+                        Nombre
+                        <input name="name" required defaultValue={item.name} className="input mt-1 w-full" />
+                      </label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <label className="text-sm text-slate-700">
+                          Marca
+                          <input name="brand" defaultValue={item.brand ?? ''} className="input mt-1 w-full" />
+                        </label>
+                        <label className="text-sm text-slate-700">
+                          Modelo
+                          <input name="model" defaultValue={item.model ?? ''} className="input mt-1 w-full" />
+                        </label>
+                      </div>
+                      <label className="text-sm text-slate-700">
+                        Número de serie
+                        <input name="serialNumber" defaultValue={item.serialNumber ?? ''} className="input mt-1 w-full" />
+                      </label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <label className="text-sm text-slate-700">
+                          Estado operativo
+                          <select name="status" defaultValue={item.status} className="input mt-1 w-full">
+                            <option value="OPERATIONAL">Operativo</option>
+                            <option value="NEEDS_MAINTENANCE">Requiere mantenimiento</option>
+                            <option value="OUT_OF_SERVICE">Fuera de servicio</option>
+                          </select>
+                        </label>
+                        <label className="text-sm text-slate-700">
+                          Fecha de mantenimiento
+                          <input
+                            name="lastMaintenanceAt"
+                            type="date"
+                            defaultValue={item.maintenanceLogs[0]?.performedAt.toISOString().slice(0, 10) ?? ''}
+                            className="input mt-1 w-full"
+                          />
+                        </label>
+                      </div>
+                      <label className="text-sm text-slate-700">
+                        Ficha técnica / observaciones
+                        <textarea name="notes" defaultValue={item.notes ?? ''} rows={3} className="input mt-1 w-full" />
+                      </label>
+                    </>
+                  }
+                  onDelete={async () => {
+                    'use server'
+                    await deleteEquipmentAction(item.id)
+                  }}
+                  deleteConfirmText={`¿Eliminar "${item.name}"? Se conservará su historial pero dejará de aparecer en Equipos.`}
+                />
               </div>
             </div>
 

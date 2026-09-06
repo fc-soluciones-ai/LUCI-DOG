@@ -1,7 +1,8 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getTutorProfile } from '@/modules/crm/tutors'
-import { createPetAction } from '@/modules/crm/actions'
+import { createPetAction, deactivatePetAction, deleteTutorAction, updateTutorAction } from '@/modules/crm/actions'
+import { DataTableActions } from '@/components/admin/DataTableActions'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,9 +32,42 @@ export default async function TutorDetailPage({ params }: { params: Promise<{ tu
           {tutor.email && <p className="text-slate-600">{tutor.email}</p>}
           {tutor.address && <p className="text-slate-600">{tutor.address}</p>}
         </div>
-        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
-          {BILLING_LABEL[tutor.billingStatus]}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+            {BILLING_LABEL[tutor.billingStatus]}
+          </span>
+          <DataTableActions
+            editLabel="Editar Datos"
+            editTitle={`Editar datos — ${tutor.fullName}`}
+            editAction={updateTutorAction.bind(null, tutor.id)}
+            editFields={
+              <>
+                <label className="text-sm text-slate-700">
+                  Nombre completo
+                  <input name="fullName" required defaultValue={tutor.fullName} className="input mt-1 w-full" />
+                </label>
+                <label className="text-sm text-slate-700">
+                  WhatsApp
+                  <input name="phoneWhatsApp" required defaultValue={tutor.phoneWhatsApp} className="input mt-1 w-full" />
+                </label>
+                <label className="text-sm text-slate-700">
+                  Correo
+                  <input name="email" type="email" defaultValue={tutor.email ?? ''} className="input mt-1 w-full" />
+                </label>
+                <label className="text-sm text-slate-700">
+                  Dirección
+                  <input name="address" defaultValue={tutor.address ?? ''} className="input mt-1 w-full" />
+                </label>
+              </>
+            }
+            deleteLabel="Desactivar"
+            deleteConfirmText={`¿Desactivar a "${tutor.fullName}"? Se conservará su historial de citas y facturas.`}
+            onDelete={async () => {
+              'use server'
+              await deleteTutorAction(tutor.id)
+            }}
+          />
+        </div>
       </div>
 
       <div className="mt-8">
@@ -41,17 +75,25 @@ export default async function TutorDetailPage({ params }: { params: Promise<{ tu
 
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           {tutor.pets.map((pet) => (
-            <Link
-              key={pet.id}
-              href={`/admin/mascotas/${pet.id}`}
-              className="rounded-lg border border-slate-200 bg-white p-4 hover:border-slate-400"
-            >
-              <p className="font-medium text-slate-900">{pet.name}</p>
-              <p className="text-sm text-slate-500">
-                {pet.breed}
-                {pet.sizeCategory ? ` · ${pet.sizeCategory}` : ''}
-              </p>
-            </Link>
+            <div key={pet.id} className="flex items-start justify-between gap-2 rounded-lg border border-slate-200 bg-white p-4 hover:border-slate-400">
+              <Link href={`/admin/mascotas/${pet.id}`} className="min-w-0 flex-1">
+                <p className="font-medium text-slate-900">{pet.name}</p>
+                <p className="text-sm text-slate-500">
+                  {pet.breed}
+                  {pet.sizeCategory ? ` · ${pet.sizeCategory}` : ''}
+                </p>
+              </Link>
+              <DataTableActions
+                viewHref={`/admin/mascotas/${pet.id}`}
+                viewLabel="Ver Expediente"
+                deleteLabel="Desactivar"
+                deleteConfirmText={`¿Desactivar a "${pet.name}"? Se conservará su historial de citas y facturas.`}
+                onDelete={async () => {
+                  'use server'
+                  await deactivatePetAction(pet.id, tutor.id)
+                }}
+              />
+            </div>
           ))}
           {tutor.pets.length === 0 && <p className="text-sm text-slate-500">Sin mascotas registradas.</p>}
         </div>

@@ -7,10 +7,13 @@ import {
   closeServiceInventoryAction,
   createInstrumentAction,
   createProductAction,
+  deleteProductAction,
   markInstrumentSharpenedAction,
   restockProductAction,
   retireInstrumentAction,
+  updateProductAction,
 } from '@/modules/inventory/actions'
+import { DataTableActions } from '@/components/admin/DataTableActions'
 
 export const dynamic = 'force-dynamic'
 
@@ -133,7 +136,9 @@ export default async function InventarioPage() {
             return (
               <div key={product.id} className="flex items-center justify-between gap-3 p-4">
                 <div>
-                  <p className="font-medium text-slate-900">{product.name}</p>
+                  <p className="font-medium text-slate-900">
+                    {product.name} {product.category && <span className="text-xs text-slate-400">({product.category})</span>}
+                  </p>
                   <p className="text-sm text-slate-500">
                     Stock: {Number(product.stockCurrent).toFixed(1)} {product.unit} · Mínimo:{' '}
                     {Number(product.stockMin).toFixed(1)} {product.unit}
@@ -148,9 +153,58 @@ export default async function InventarioPage() {
                   <form action={restockProductAction.bind(null, product.id)} className="flex gap-1">
                     <input type="number" name="quantity" placeholder="cantidad" className="input w-24 text-xs" />
                     <button type="submit" className="rounded bg-slate-900 px-2 py-1 text-xs font-medium text-white">
-                      Reabastecer
+                      Ajustar Stock
                     </button>
                   </form>
+                  <DataTableActions
+                    editLabel="Editar Producto"
+                    editTitle={`Editar producto — ${product.name}`}
+                    editAction={updateProductAction.bind(null, product.id)}
+                    editFields={
+                      <>
+                        <label className="text-sm text-slate-700">
+                          Nombre
+                          <input name="name" required defaultValue={product.name} className="input mt-1 w-full" />
+                        </label>
+                        <label className="text-sm text-slate-700">
+                          Categoría
+                          <input name="category" defaultValue={product.category ?? ''} className="input mt-1 w-full" />
+                        </label>
+                        <div className="grid grid-cols-2 gap-3">
+                          <label className="text-sm text-slate-700">
+                            Stock mínimo
+                            <input
+                              name="stockMin"
+                              type="number"
+                              step="0.1"
+                              defaultValue={Number(product.stockMin)}
+                              className="input mt-1 w-full"
+                            />
+                          </label>
+                          <label className="text-sm text-slate-700">
+                            Precio de costo
+                            <input
+                              name="costPerUnit"
+                              type="number"
+                              step="0.0001"
+                              defaultValue={Number(product.costPerUnit)}
+                              className="input mt-1 w-full"
+                            />
+                          </label>
+                        </div>
+                        <label className="text-sm text-slate-700">
+                          Proveedor
+                          <input name="supplier" defaultValue={product.supplier ?? ''} className="input mt-1 w-full" />
+                        </label>
+                      </>
+                    }
+                    onDelete={async () => {
+                      'use server'
+                      await deleteProductAction(product.id)
+                    }}
+                    deleteLabel="Eliminar"
+                    deleteConfirmText={`¿Eliminar "${product.name}"? Se conservará el historial de movimientos pero dejará de listarse en Inventario.`}
+                  />
                 </div>
               </div>
             )
@@ -161,6 +215,7 @@ export default async function InventarioPage() {
           <summary className="cursor-pointer text-sm font-medium text-slate-700">+ Nuevo producto</summary>
           <form action={createProductAction} className="mt-3 grid max-w-lg gap-2 sm:grid-cols-2">
             <input name="name" required placeholder="Nombre" className="input" />
+            <input name="category" placeholder="Categoría (opcional)" className="input" />
             <select name="unit" defaultValue="ML" className="input">
               <option value="ML">Mililitros</option>
               <option value="GRAM">Gramos</option>

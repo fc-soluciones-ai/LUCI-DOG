@@ -3,8 +3,8 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { SensitivityLevel } from '@prisma/client'
-import { createPetForTutor, createTutor } from './tutors'
-import { addPetPhoto, deletePetPhoto, updatePetBiometrics, upsertClinicalRecord } from './pets'
+import { createPetForTutor, createTutor, softDeleteTutor, updateTutor } from './tutors'
+import { addPetPhoto, deactivatePet, deletePetPhoto, updatePetBiometrics, upsertClinicalRecord } from './pets'
 
 function str(formData: FormData, key: string): string | undefined {
   const value = formData.get(key)
@@ -25,6 +25,28 @@ export async function createTutorAction(formData: FormData) {
   })
   revalidatePath('/admin/clientes')
   redirect(`/admin/clientes/${tutor.id}`)
+}
+
+export async function updateTutorAction(tutorId: string, formData: FormData) {
+  await updateTutor(tutorId, {
+    fullName: String(formData.get('fullName')),
+    phoneWhatsApp: String(formData.get('phoneWhatsApp')),
+    email: str(formData, 'email'),
+    address: str(formData, 'address'),
+  })
+  revalidatePath('/admin/clientes')
+  revalidatePath(`/admin/clientes/${tutorId}`)
+}
+
+export async function deleteTutorAction(tutorId: string) {
+  await softDeleteTutor(tutorId)
+  revalidatePath('/admin/clientes')
+}
+
+export async function deactivatePetAction(petId: string, tutorId: string) {
+  await deactivatePet(petId)
+  revalidatePath(`/admin/clientes/${tutorId}`)
+  revalidatePath(`/admin/mascotas/${petId}`)
 }
 
 export async function createPetAction(tutorId: string, formData: FormData) {
@@ -55,8 +77,14 @@ export async function upsertClinicalRecordAction(petId: string, formData: FormDa
     .map((a) => a.trim())
     .filter(Boolean)
 
+  const vaccinations = (str(formData, 'vaccinations') ?? '')
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean)
+
   await upsertClinicalRecord(petId, {
     allergies,
+    vaccinations,
     acousticSensitivity: (formData.get('acousticSensitivity') as SensitivityLevel) || SensitivityLevel.NONE,
     reactivity: (formData.get('reactivity') as SensitivityLevel) || SensitivityLevel.NONE,
     requiresMuzzle: formData.get('requiresMuzzle') === 'on',

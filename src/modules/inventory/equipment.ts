@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 
 export async function listEquipment() {
   const equipment = await prisma.equipment.findMany({
+    where: { deletedAt: null },
     orderBy: { name: 'asc' },
     include: { maintenanceLogs: { orderBy: { performedAt: 'desc' }, take: 3 } },
   })
@@ -45,4 +46,24 @@ export async function logMaintenance(
 
 export async function flagEquipmentStatus(equipmentId: string, status: EquipmentStatus) {
   return prisma.equipment.update({ where: { id: equipmentId }, data: { status } })
+}
+
+export interface UpdateEquipmentInput {
+  name: string
+  brand?: string
+  model?: string
+  serialNumber?: string
+  status: EquipmentStatus
+  lastMaintenanceAt?: Date
+  notes?: string
+}
+
+/** Edición completa de la ficha técnica de un equipo (Estandarización CRUD). */
+export async function updateEquipment(equipmentId: string, input: UpdateEquipmentInput) {
+  return prisma.equipment.update({ where: { id: equipmentId }, data: input })
+}
+
+/** Borrado lógico: el equipo deja de listarse pero conserva su historial de mantenimiento. */
+export async function softDeleteEquipment(equipmentId: string) {
+  return prisma.equipment.update({ where: { id: equipmentId }, data: { deletedAt: new Date() } })
 }

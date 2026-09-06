@@ -24,8 +24,14 @@ export async function updatePetBiometrics(petId: string, input: UpdateBiometrics
   return prisma.pet.update({ where: { id: petId }, data: input })
 }
 
+/** Borrado lógico de la mascota — conserva su historial de citas/facturas. */
+export async function deactivatePet(petId: string) {
+  return prisma.pet.update({ where: { id: petId }, data: { active: false } })
+}
+
 export interface ClinicalRecordInput {
   allergies: string[]
+  vaccinations: string[]
   acousticSensitivity: SensitivityLevel
   reactivity: SensitivityLevel
   requiresMuzzle: boolean

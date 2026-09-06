@@ -2,11 +2,12 @@ import { InventoryTxType, type ProductUnit } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 
 export async function listProducts() {
-  return prisma.product.findMany({ orderBy: { name: 'asc' } })
+  return prisma.product.findMany({ where: { active: true }, orderBy: { name: 'asc' } })
 }
 
 export interface CreateProductInput {
   name: string
+  category?: string
   unit: ProductUnit
   stockCurrent: number
   stockMin: number
@@ -26,4 +27,22 @@ export async function restockProduct(productId: string, quantity: number, note?:
       data: { productId, type: InventoryTxType.RESTOCK, quantity, note },
     }),
   ])
+}
+
+export interface UpdateProductInput {
+  name: string
+  category?: string
+  stockMin: number
+  costPerUnit: number
+  supplier?: string
+}
+
+/** Edición de ficha del producto (Estandarización CRUD) — no toca el stock actual. */
+export async function updateProduct(productId: string, input: UpdateProductInput) {
+  return prisma.product.update({ where: { id: productId }, data: input })
+}
+
+/** Borrado lógico: deja de listarse/consumirse pero conserva su historial de movimientos. */
+export async function softDeleteProduct(productId: string) {
+  return prisma.product.update({ where: { id: productId }, data: { active: false } })
 }

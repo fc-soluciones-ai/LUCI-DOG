@@ -61,3 +61,36 @@ export async function createStaffUser(input: CreateStaffUserInput) {
 export async function setProfileActive(profileId: string, active: boolean) {
   return prisma.profile.update({ where: { id: profileId }, data: { active } })
 }
+
+export interface UpdateProfileInput {
+  fullName: string
+  email: string
+  role: 'ADMIN' | 'GROOMER'
+}
+
+/**
+ * Edita nombre/correo/rol de una cuenta de staff (Estandarización CRUD).
+ * Mantiene sincronizado el Staff vinculado (nombre visible en asignación de
+ * groomer, mantenimiento, etc.) y el correo en Supabase Auth.
+ */
+export async function updateProfile(profileId: string, input: UpdateProfileInput) {
+  const profile = await prisma.profile.findUniqueOrThrow({ where: { id: profileId } })
+
+  if (input.email !== profile.email) {
+    const admin = createSupabaseAdminClient()
+    const { error } = await admin.auth.admin.updateUserById(profileId, { email: input.email })
+    if (error) throw new Error(`No se pudo actualizar el correo en Supabase Auth: ${error.message}`)
+  }
+
+  if (profile.staffId) {
+    await prisma.staff.update({
+      where: { id: profile.staffId },
+      data: { fullName: input.fullName, role: input.role === 'ADMIN' ? Role.ADMIN : Role.GROOMER },
+    })
+  }
+
+  return prisma.profile.update({
+    where: { id: profileId },
+    data: { fullName: input.fullName, email: input.email, role: input.role as UserRole },
+  })
+}

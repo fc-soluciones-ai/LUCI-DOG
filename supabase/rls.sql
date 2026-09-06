@@ -32,14 +32,15 @@
 
 -- ----------------------------------------------------------------------------
 -- 1. Integridad referencial: Profile.id -> auth.users.id
---    (Prisma no puede declarar esto porque auth.users vive en otro schema)
+--
+--    NO se declara como FK real: una FK cruzada a `auth.users` obliga a
+--    Prisma a tratar `auth` como schema gestionado (previewFeature
+--    multiSchema + `@@schema("public")` en los ~35 modelos), lo cual rompe
+--    `prisma db push`/migrate para todo el proyecto a cambio de una simple
+--    verificación de integridad. Se prefiere mantener la app de un solo
+--    schema y confiar en que Profile.id se crea siempre a partir de un
+--    auth.users.id real (así lo hace `createStaffUser`/el bootstrap).
 -- ----------------------------------------------------------------------------
-alter table "Profile"
-  drop constraint if exists "Profile_id_fkey";
-
-alter table "Profile"
-  add constraint "Profile_id_fkey"
-  foreign key (id) references auth.users(id) on delete cascade;
 
 -- ----------------------------------------------------------------------------
 -- 2. Helper: rol efectivo del usuario autenticado actual (según Profile)
