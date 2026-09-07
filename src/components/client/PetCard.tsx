@@ -17,9 +17,19 @@ interface Pet {
 
 const initialState: UploadPetPhotoState = { ok: false }
 
-/** Tarjeta de mascota con avatar HD y captura de foto desde el celular (cámara o galería). */
+/**
+ * Tarjeta de mascota con avatar HD y captura de foto desde el celular.
+ * Dos botones/inputs separados (cámara y galería) en vez de un solo input
+ * "inteligente": ni iOS en modo standalone (PWA instalada) ni el Photo
+ * Picker moderno de Android Chrome muestran de forma confiable ambas
+ * opciones a partir de un único <input type="file"> — Android en particular
+ * omite la cámara a propósito en su Photo Picker cuando no hay `capture`.
+ * Separar los botones evita depender de ese selector combinado del sistema.
+ */
 export function PetCard({ pet }: { pet: Pet }) {
-  const inputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
+  const galleryInputRef = useRef<HTMLInputElement>(null)
+  const submitInputRef = useRef<HTMLInputElement>(null)
   const [state, formAction, pending] = useActionState(uploadPetPhotoAction.bind(null, pet.id), initialState)
   const [clientError, setClientError] = useState<string | null>(null)
   const [preparing, setPreparing] = useState(false)
@@ -48,8 +58,13 @@ export function PetCard({ pet }: { pet: Pet }) {
       return
     }
 
-    if (prepared !== file) replaceInputFile(input, prepared)
-    input.form?.requestSubmit()
+    // Ambos inputs (cámara/galería) alimentan este único input "carrier" con
+    // name="photo" — evita que el navegador mande dos entradas con el mismo
+    // nombre (una vacía) al enviar el form.
+    if (submitInputRef.current) {
+      replaceInputFile(submitInputRef.current, prepared)
+      submitInputRef.current.form?.requestSubmit()
+    }
   }
 
   return (
@@ -69,23 +84,38 @@ export function PetCard({ pet }: { pet: Pet }) {
         )}
 
         <form action={formAction}>
-          <button
-            type="button"
-            onClick={() => inputRef.current?.click()}
-            disabled={pending || preparing}
-            className="absolute bottom-2 right-2 flex h-9 w-9 items-center justify-center rounded-full bg-white text-lg shadow disabled:opacity-50"
-            aria-label="Cambiar foto"
-          >
-            {pending ? '…' : preparing ? '⏳' : '📷'}
-          </button>
+          <input ref={submitInputRef} type="file" name="photo" className="hidden" tabIndex={-1} />
+          <div className="absolute bottom-2 right-2 flex gap-1.5">
+            <button
+              type="button"
+              onClick={() => cameraInputRef.current?.click()}
+              disabled={pending || preparing}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-lg shadow disabled:opacity-50"
+              aria-label="Tomar foto"
+              title="Tomar foto"
+            >
+              {pending ? '…' : preparing ? '⏳' : '📷'}
+            </button>
+            <button
+              type="button"
+              onClick={() => galleryInputRef.current?.click()}
+              disabled={pending || preparing}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-lg shadow disabled:opacity-50"
+              aria-label="Elegir de galería"
+              title="Elegir de galería"
+            >
+              🖼️
+            </button>
+          </div>
           <input
-            ref={inputRef}
+            ref={cameraInputRef}
             type="file"
-            name="photo"
             accept="image/*"
+            capture="environment"
             className="hidden"
             onChange={handleFileSelected}
           />
+          <input ref={galleryInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelected} />
         </form>
       </div>
 

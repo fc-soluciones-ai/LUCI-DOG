@@ -26,6 +26,7 @@ export function InvoicePaymentModal({ invoiceId, paymentInfoText, rejectionReaso
   const [dragOver, setDragOver] = useState(false)
   const [preparing, setPreparing] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
 
   const [state, formAction, pending] = useActionState(uploadPaymentReceiptAction.bind(null, invoiceId), initialState)
 
@@ -119,7 +120,16 @@ export function InvoicePaymentModal({ invoiceId, paymentInfoText, rejectionReaso
           </label>
 
           <div>
-            <p className="text-sm text-slate-700">Comprobante</p>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-slate-700">Comprobante</p>
+              <button
+                type="button"
+                onClick={() => cameraInputRef.current?.click()}
+                className="text-xs font-medium text-slate-600 hover:text-slate-900 hover:underline"
+              >
+                📷 Tomar foto
+              </button>
+            </div>
             <div
               onDragOver={(event) => {
                 event.preventDefault()
@@ -144,7 +154,7 @@ export function InvoicePaymentModal({ invoiceId, paymentInfoText, rejectionReaso
               ) : (
                 <>
                   <span className="text-2xl">🧾</span>
-                  <span className="text-slate-500">Arrastra tu comprobante o haz clic para elegirlo</span>
+                  <span className="text-slate-500">Arrastra tu comprobante o haz clic para elegirlo de tu galería</span>
                   <span className="text-xs text-slate-400">JPG, PNG, WEBP o PDF · máx. {formatMB(MAX_UPLOAD_BYTES)}</span>
                 </>
               )}
@@ -153,6 +163,14 @@ export function InvoicePaymentModal({ invoiceId, paymentInfoText, rejectionReaso
                 type="file"
                 name="receipt"
                 accept="image/*,application/pdf"
+                className="hidden"
+                onChange={(event) => void applyFile(event.target.files?.[0])}
+              />
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
                 className="hidden"
                 onChange={(event) => void applyFile(event.target.files?.[0])}
               />

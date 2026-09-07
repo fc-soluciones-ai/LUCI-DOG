@@ -16,6 +16,7 @@ interface Props {
 /** Subida de imagen con drag-and-drop, selector de archivo, compresión automática y vista previa. */
 export function ImageUploader({ name = 'image', removeFieldName = 'removeImage', initialImageUrl, onPreparingChange }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
   const [preview, setPreview] = useState<string | null>(initialImageUrl ?? null)
   const [removed, setRemoved] = useState(false)
   const [dragOver, setDragOver] = useState(false)
@@ -71,6 +72,18 @@ export function ImageUploader({ name = 'image', removeFieldName = 'removeImage',
   return (
     <div>
       <input type="hidden" name={removeFieldName} value={removed ? 'true' : 'false'} />
+      <div className="mb-1 flex justify-end">
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation()
+            cameraInputRef.current?.click()
+          }}
+          className="text-xs font-medium text-slate-600 hover:text-slate-900 hover:underline"
+        >
+          📷 Tomar foto
+        </button>
+      </div>
       <div
         onDragOver={(event) => {
           event.preventDefault()
@@ -102,6 +115,14 @@ export function ImageUploader({ name = 'image', removeFieldName = 'removeImage',
           type="file"
           name={name}
           accept="image/*"
+          className="hidden"
+          onChange={(event) => void applyFile(event.target.files?.[0])}
+        />
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
           className="hidden"
           onChange={(event) => void applyFile(event.target.files?.[0])}
         />
