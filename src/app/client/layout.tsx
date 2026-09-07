@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import { requireRole } from '@/modules/auth/profile'
 import { signOutAction } from '@/modules/auth/actions'
 import { RegisterServiceWorker } from '@/components/client/RegisterServiceWorker'
+import { InstallPWAPrompt } from '@/components/pwa/InstallPWAPrompt'
 import { getBranding } from '@/modules/config/branding'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -12,6 +13,14 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     manifest: '/api/client-manifest',
     icons: { icon, apple: icon },
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: 'black-translucent',
+      title: branding.businessName,
+    },
+    // Next solo emite el "mobile-web-app-capable" moderno desde appleWebApp.capable —
+    // el prefijo "apple-" sigue siendo necesario para iOS/Safari más viejos.
+    other: { 'apple-mobile-web-app-capable': 'yes' },
   }
 }
 
@@ -25,7 +34,8 @@ export default async function ClientLayout({ children }: { children: ReactNode }
 
   return (
     <div className="min-h-screen">
-      <RegisterServiceWorker />
+      <RegisterServiceWorker scope="/client/" />
+      <InstallPWAPrompt appName={branding.businessName} />
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
           <span className="flex items-center gap-2 font-semibold text-slate-900">

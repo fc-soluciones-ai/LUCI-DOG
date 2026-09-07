@@ -1,13 +1,22 @@
-// Service worker mínimo para el Portal del Cliente (/client). Solo cachea GET:
-// nunca intercepta Server Actions ni mutaciones (siempre POST).
-const CACHE_NAME = 'groomingos-client-v1'
-const SHELL_URLS = ['/client', '/client/citas', '/client/mascotas', '/client/facturas', '/client/perfil']
+// Service worker compartido por /client, /admin y /groomer (cada uno lo registra
+// con un scope distinto). Solo cachea GET: nunca intercepta Server Actions ni
+// mutaciones (siempre POST).
+const CACHE_NAME = 'groomingos-shell-v2'
+
+function shellUrlsForScope(scopeUrl) {
+  const path = new URL(scopeUrl).pathname
+  if (path.startsWith('/client')) return ['/client', '/client/citas', '/client/mascotas', '/client/facturas', '/client/perfil']
+  if (path.startsWith('/admin')) return ['/admin']
+  if (path.startsWith('/groomer')) return ['/groomer']
+  return [path]
+}
 
 self.addEventListener('install', (event) => {
+  const shellUrls = shellUrlsForScope(self.registration.scope)
   event.waitUntil(
     caches
       .open(CACHE_NAME)
-      .then((cache) => cache.addAll(SHELL_URLS))
+      .then((cache) => cache.addAll(shellUrls))
       .catch(() => {})
   )
   self.skipWaiting()
@@ -44,10 +53,9 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // Navegación entre páginas: network-first, cae al shell cacheado si no hay red.
+  // Navegación entre páginas: network-first, cae al shell cacheado de ESTE scope si no hay red.
   if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request).catch(() => caches.match(request).then((cached) => cached || caches.match('/client')))
-    )
+    const fallbackPath = new URL(self.registration.scope).pathname
+    event.respondWith(fetch(request).catch(() => caches.match(request).then((cached) => cached || caches.match(fallbackPath))))
   }
 })
