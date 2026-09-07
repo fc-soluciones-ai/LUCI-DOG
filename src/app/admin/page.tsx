@@ -3,6 +3,7 @@ import Link from 'next/link'
 export const dynamic = 'force-dynamic'
 
 const SHORTCUTS = [
+  { href: '/admin/appointments', label: 'Citas / Agenda', description: 'Todas las citas, filtros y agendamiento manual' },
   { href: '/groomer', label: 'Piso de trabajo', description: 'Monitor de tiempos y comandos de voz' },
   { href: '/admin/clientes', label: 'Clientes', description: 'Dueños y expedientes de mascotas' },
   { href: '/admin/facturacion', label: 'Facturación', description: 'Cierre de servicio y cobros' },

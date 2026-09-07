@@ -44,6 +44,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             {branding.businessName}
           </span>
           <nav className="flex flex-wrap gap-4 text-sm text-slate-600">
+            <Link href="/admin/appointments" className="font-semibold text-slate-900 hover:underline">
+              Citas
+            </Link>
             <Link href="/groomer" className="hover:text-slate-900">
               Piso (Groomer)
             </Link>

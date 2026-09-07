@@ -2,6 +2,15 @@ import { AppointmentStatus, type SensitivityLevel } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { deletePetPhotoFile, uploadPetPhoto } from '@/lib/supabase/storage'
 
+/** Mascotas activas de un tutor — usado por el selector de mascota al agendar (admin y self-service). */
+export async function listPetsForTutor(tutorId: string) {
+  return prisma.pet.findMany({
+    where: { tutorId, active: true },
+    select: { id: true, name: true, breed: true, sizeCategory: true },
+    orderBy: { createdAt: 'desc' },
+  })
+}
+
 export async function getPetProfile(petId: string) {
   return prisma.pet.findUniqueOrThrow({
     where: { id: petId },
