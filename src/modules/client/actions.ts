@@ -89,11 +89,11 @@ export async function cancelAppointmentByClientAction(appointmentId: string) {
   revalidateAgenda()
 }
 
-/** Consultado desde el modal de agendado/reagendado al cambiar fecha o servicio. */
-export async function getAvailableSlotsAction(serviceId: string, dateIso: string): Promise<TimeSlot[]> {
+/** Consultado desde el modal de agendado/reagendado al cambiar fecha, servicio o mascota (la talla afecta la duración real). */
+export async function getAvailableSlotsAction(serviceId: string, dateIso: string, sizeCategory?: string): Promise<TimeSlot[]> {
   await requireRole(['CLIENT'])
   if (!serviceId || !dateIso) return []
-  return getAvailableSlots(new Date(dateIso), serviceId)
+  return getAvailableSlots(new Date(dateIso), serviceId, sizeCategory)
 }
 
 export async function uploadPaymentReceiptAction(

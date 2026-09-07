@@ -3,87 +3,10 @@ import { prisma } from '@/lib/prisma'
 import { BLOCKING_STATUSES } from '@/modules/agenda/booking'
 import { scheduleAppointmentNotifications } from '@/modules/agenda/notifications'
 import { BookingBlockedError, ValidationError } from '@/modules/agenda/errors'
-import { WORKDAY_END_HOUR, WORKDAY_START_HOUR } from '@/modules/control-center/pipelineBoard'
+import { assertNoPetOverlap, assertSlotAvailable, computeDurationMinutes, getAvailableSlots } from '@/modules/agenda/availability'
 
-const SLOT_STEP_MIN = 30
-
-export interface TimeSlot {
-  start: string // ISO
-  available: boolean
-}
-
-/**
- * Slots de `SLOT_STEP_MIN` minutos entre las horas de trabajo. "Disponible" se
- * define por capacidad, no por estación/groomer específico: cuántas citas ya
- * se traslapan con el slot contra el total de estaciones activas — la misma
- * noción de capacidad que ya usa el Dashboard TV, sin un motor de reservas nuevo.
- */
-export async function getAvailableSlots(date: Date, serviceId: string): Promise<TimeSlot[]> {
-  const service = await prisma.service.findUniqueOrThrow({ where: { id: serviceId } })
-  const durationMs = service.standardDurationMin * 60_000
-
-  const dayStart = new Date(date)
-  dayStart.setHours(0, 0, 0, 0)
-  const dayEnd = new Date(dayStart)
-  dayEnd.setDate(dayEnd.getDate() + 1)
-
-  const [appointments, activeWorkstations] = await Promise.all([
-    prisma.appointment.findMany({
-      where: {
-        scheduledStart: { gte: dayStart, lt: dayEnd },
-        status: { notIn: [AppointmentStatus.CANCELLED, AppointmentStatus.NO_SHOW] },
-      },
-      select: { scheduledStart: true, scheduledEnd: true },
-    }),
-    prisma.workstation.count({ where: { active: true } }),
-  ])
-
-  const capacity = Math.max(activeWorkstations, 1)
-  const dayCloseMs = new Date(dayStart).setHours(WORKDAY_END_HOUR, 0, 0, 0)
-  const slots: TimeSlot[] = []
-
-  for (let minutes = WORKDAY_START_HOUR * 60; minutes < WORKDAY_END_HOUR * 60; minutes += SLOT_STEP_MIN) {
-    const slotStart = new Date(dayStart.getTime() + minutes * 60_000)
-    const slotEnd = new Date(slotStart.getTime() + durationMs)
-    if (slotEnd.getTime() > dayCloseMs) continue // no cabe antes del cierre
-
-    const overlapping = appointments.filter(
-      (a) => a.scheduledStart < slotEnd && a.scheduledEnd > slotStart
-    ).length
-
-    slots.push({ start: slotStart.toISOString(), available: overlapping < capacity })
-  }
-
-  return slots
-}
-
-async function assertSlotAvailable(scheduledStart: Date, serviceId: string) {
-  const slots = await getAvailableSlots(scheduledStart, serviceId)
-  const match = slots.find((slot) => slot.start === scheduledStart.toISOString())
-  if (!match || !match.available) {
-    throw new ValidationError('Ese horario ya no está disponible. Elige otro.')
-  }
-}
-
-/**
- * Choque de horario específico de la mascota: además de la capacidad general
- * del salón, la MISMA mascota nunca puede tener dos citas activas que se
- * traslapen (independientemente de cuánta capacidad libre haya).
- */
-async function assertNoPetOverlap(petId: string, scheduledStart: Date, scheduledEnd: Date, excludeAppointmentId?: string) {
-  const conflict = await prisma.appointment.findFirst({
-    where: {
-      petId,
-      id: excludeAppointmentId ? { not: excludeAppointmentId } : undefined,
-      status: { notIn: [AppointmentStatus.CANCELLED, AppointmentStatus.NO_SHOW] },
-      scheduledStart: { lt: scheduledEnd },
-      scheduledEnd: { gt: scheduledStart },
-    },
-  })
-  if (conflict) {
-    throw new ValidationError('Esta mascota ya tiene otra cita en ese horario.')
-  }
-}
+export { getAvailableSlots }
+export type { TimeSlot } from '@/modules/agenda/availability'
 
 export interface ClientBookingInput {
   petId: string
@@ -104,8 +27,9 @@ export async function createAppointmentByClient(tutorId: string, input: ClientBo
   const pet = await prisma.pet.findFirstOrThrow({ where: { id: input.petId, tutorId } })
   const service = await prisma.service.findUniqueOrThrow({ where: { id: input.serviceId } })
 
-  await assertSlotAvailable(input.scheduledStart, input.serviceId)
-  const scheduledEnd = new Date(input.scheduledStart.getTime() + service.standardDurationMin * 60_000)
+  await assertSlotAvailable(input.scheduledStart, input.serviceId, pet.sizeCategory)
+  const durationMin = computeDurationMinutes(service.standardDurationMin, pet.sizeCategory)
+  const scheduledEnd = new Date(input.scheduledStart.getTime() + durationMin * 60_000)
   await assertNoPetOverlap(pet.id, input.scheduledStart, scheduledEnd)
 
   const appointment = await prisma.appointment.create({
@@ -129,14 +53,15 @@ const RESCHEDULABLE_STATUSES: AppointmentStatus[] = [AppointmentStatus.PENDING_C
 
 /** Reagenda una cita propia — solo si aún no arrancó (Pendiente/Confirmada). */
 export async function rescheduleAppointmentByClient(tutorId: string, appointmentId: string, newStart: Date) {
-  const appointment = await prisma.appointment.findFirstOrThrow({ where: { id: appointmentId, tutorId } })
+  const appointment = await prisma.appointment.findFirstOrThrow({ where: { id: appointmentId, tutorId }, include: { pet: true } })
   if (!RESCHEDULABLE_STATUSES.includes(appointment.status)) {
     throw new ValidationError('Esta cita ya no se puede reagendar (ya está en proceso o finalizada).')
   }
 
   const service = await prisma.service.findUniqueOrThrow({ where: { id: appointment.serviceId } })
-  await assertSlotAvailable(newStart, appointment.serviceId)
-  const scheduledEnd = new Date(newStart.getTime() + service.standardDurationMin * 60_000)
+  await assertSlotAvailable(newStart, appointment.serviceId, appointment.pet.sizeCategory)
+  const durationMin = computeDurationMinutes(service.standardDurationMin, appointment.pet.sizeCategory)
+  const scheduledEnd = new Date(newStart.getTime() + durationMin * 60_000)
   await assertNoPetOverlap(appointment.petId, newStart, scheduledEnd, appointmentId)
 
   const updated = await prisma.appointment.update({

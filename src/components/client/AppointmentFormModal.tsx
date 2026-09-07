@@ -13,6 +13,7 @@ import { formatCRC } from '@/lib/currency'
 interface PetOption {
   id: string
   name: string
+  sizeCategory: string | null
 }
 
 interface ServiceOption {
@@ -25,6 +26,7 @@ interface ServiceOption {
 interface RescheduleTarget {
   id: string
   petName: string
+  petSizeCategory: string | null
   serviceId: string
   serviceName: string
 }
@@ -43,6 +45,7 @@ export function AppointmentFormModal(props: Props) {
   const [open, setOpen] = useState(false)
   const [date, setDate] = useState(todayIso())
   const [serviceId, setServiceId] = useState(props.mode === 'create' ? '' : props.appointment.serviceId)
+  const [petId, setPetId] = useState('')
   const [slots, setSlots] = useState<{ start: string; available: boolean }[]>([])
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
@@ -50,6 +53,11 @@ export function AppointmentFormModal(props: Props) {
   const boundAction =
     props.mode === 'create' ? createAppointmentByClientAction : rescheduleAppointmentByClientAction.bind(null, props.appointment.id)
   const [state, formAction, pending] = useActionState(boundAction, initialState)
+
+  // La duración real (y por tanto los horarios que caben) depende de la talla
+  // de la mascota — se necesita para pedir los slots correctos a getAvailableSlotsAction.
+  const sizeCategory =
+    props.mode === 'create' ? (props.pets.find((pet) => pet.id === petId)?.sizeCategory ?? null) : props.appointment.petSizeCategory
 
   useEffect(() => {
     if (state.ok) setOpen(false)
@@ -63,10 +71,10 @@ export function AppointmentFormModal(props: Props) {
     setLoadingSlots(true)
     setSelectedSlot(null)
     const dateIso = new Date(`${date}T00:00:00`).toISOString()
-    getAvailableSlotsAction(serviceId, dateIso)
+    getAvailableSlotsAction(serviceId, dateIso, sizeCategory ?? undefined)
       .then(setSlots)
       .finally(() => setLoadingSlots(false))
-  }, [open, serviceId, date])
+  }, [open, serviceId, date, sizeCategory])
 
   return (
     <>
@@ -86,7 +94,13 @@ export function AppointmentFormModal(props: Props) {
             <>
               <label className="text-sm text-slate-700">
                 Mascota
-                <select name="petId" required defaultValue="" className="input mt-1 w-full">
+                <select
+                  name="petId"
+                  required
+                  value={petId}
+                  onChange={(event) => setPetId(event.target.value)}
+                  className="input mt-1 w-full"
+                >
                   <option value="" disabled>
                     Selecciona tu mascota
                   </option>

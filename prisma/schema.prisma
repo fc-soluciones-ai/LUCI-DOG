@@ -616,9 +616,22 @@ model EquipmentCategory {
 // /admin/configuracion — reemplaza variables de entorno para datos que el admin
 // debe poder actualizar sin depender de un despliegue.
 model AppSettings {
-  id              String   @id @default("default")
-  paymentInfoText String? // datos de SINPE Móvil / cuenta bancaria mostrados al cliente al pagar
-  updatedAt       DateTime @updatedAt
+  id                String   @id @default("default")
+  paymentInfoText   String? // datos de SINPE Móvil / cuenta bancaria mostrados al cliente al pagar
+  bufferTimeMinutes Int      @default(15) // margen de limpieza/preparación entre citas consecutivas
+  updatedAt         DateTime @updatedAt
+}
+
+// Horario de negocio por día de la semana — alimenta el motor de disponibilidad
+// (getAvailableSlots) y el Dashboard TV. Si un día no tiene fila, se asume
+// abierto 08:00-19:00 (Lun-Sáb) o cerrado (Domingo) — ver businessHours.ts.
+model BusinessHour {
+  id        String   @id @default(cuid())
+  dayOfWeek Int      @unique // 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
+  isOpen    Boolean  @default(true)
+  openTime  String // "HH:mm" en hora de Costa Rica
+  closeTime String // "HH:mm" en hora de Costa Rica
+  updatedAt DateTime @updatedAt
 }
 
 // White Label de un solo tenant: un único registro con la identidad de marca

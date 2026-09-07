@@ -2,6 +2,7 @@ import { AppointmentSource, AppointmentStatus, BillingStatus } from '@prisma/cli
 import { prisma } from '@/lib/prisma'
 import { scheduleAppointmentNotifications } from './notifications'
 import { BookingBlockedError, ValidationError } from './errors'
+import { assertNoPetOverlap, assertSlotAvailable, computeDurationMinutes } from './availability'
 
 // Regla anti-morosidad (Módulo 6): estos estados bloquean el auto-agendamiento
 // hasta que se verifique el comprobante o el admin desautorice manualmente.
@@ -37,9 +38,18 @@ export async function createSelfServiceBooking(input: SelfServiceBookingInput) {
     throw new ValidationError('Debe aceptar la cláusula de cotización estimada antes de agendar.')
   }
 
-  return prisma.$transaction(async (tx) => {
-    const service = await tx.service.findUniqueOrThrow({ where: { id: input.serviceId } })
+  // Validado fuera de la transacción, igual que en el portal del cliente
+  // (modules/client/booking.ts) — este flujo self-service antes no validaba
+  // disponibilidad en absoluto, aceptaba cualquier horario a ciegas.
+  const service = await prisma.service.findUniqueOrThrow({ where: { id: input.serviceId } })
+  await assertSlotAvailable(input.scheduledStart, input.serviceId, input.pet.sizeCategory)
+  const durationMin = computeDurationMinutes(service.standardDurationMin, input.pet.sizeCategory)
+  const scheduledEnd = new Date(input.scheduledStart.getTime() + durationMin * 60_000)
+  if (input.pet.id) {
+    await assertNoPetOverlap(input.pet.id, input.scheduledStart, scheduledEnd)
+  }
 
+  return prisma.$transaction(async (tx) => {
     let tutor = await tx.tutor.findUnique({ where: { phoneWhatsApp: input.tutor.phoneWhatsApp } })
 
     if (tutor && BLOCKING_STATUSES.includes(tutor.billingStatus)) {
@@ -78,8 +88,6 @@ export async function createSelfServiceBooking(input: SelfServiceBookingInput) {
             weightEstimated: input.pet.weightEstimated,
           },
         })
-
-    const scheduledEnd = new Date(input.scheduledStart.getTime() + service.standardDurationMin * 60_000)
 
     const appointment = await tx.appointment.create({
       data: {

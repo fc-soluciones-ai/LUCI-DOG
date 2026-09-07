@@ -1,7 +1,8 @@
 import { listEquipmentCategories } from '@/modules/config/equipmentCategories'
 import { listProductCategories, listUnitsOfMeasure } from '@/modules/config/productCatalogs'
 import { listCustomerTags } from '@/modules/config/customerTags'
-import { getRawPaymentInfoText } from '@/modules/config/settings'
+import { getBufferTimeMinutes, getRawPaymentInfoText } from '@/modules/config/settings'
+import { DAY_LABELS, listBusinessHours } from '@/modules/config/businessHours'
 import {
   createCustomerTagAction,
   createEquipmentCategoryAction,
@@ -11,6 +12,8 @@ import {
   deleteEquipmentCategoryAction,
   deleteProductCategoryAction,
   deleteUnitOfMeasureAction,
+  updateBufferTimeMinutesAction,
+  updateBusinessHourAction,
   updateCustomerTagAction,
   updateEquipmentCategoryAction,
   updatePaymentInfoTextAction,
@@ -22,12 +25,14 @@ import { DataTableActions } from '@/components/admin/DataTableActions'
 export const dynamic = 'force-dynamic'
 
 export default async function ConfiguracionPage() {
-  const [equipmentCategories, productCategories, units, tags, paymentInfoText] = await Promise.all([
+  const [equipmentCategories, productCategories, units, tags, paymentInfoText, businessHours, bufferTimeMinutes] = await Promise.all([
     listEquipmentCategories(),
     listProductCategories(),
     listUnitsOfMeasure(),
     listCustomerTags(),
     getRawPaymentInfoText(),
+    listBusinessHours(),
+    getBufferTimeMinutes(),
   ])
 
   return (
@@ -289,6 +294,62 @@ export default async function ConfiguracionPage() {
             </button>
           </form>
         </details>
+      </section>
+
+      <section>
+        <h2 className="text-lg font-medium text-slate-900">Horario de negocio</h2>
+        <p className="mt-1 text-sm text-slate-500">
+          Días y horas en que se pueden agendar citas (desde /book y el portal del cliente). Los cambios
+          aplican de inmediato a los horarios disponibles.
+        </p>
+
+        <div className="mt-3 divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
+          {businessHours.map((day) => (
+            <form
+              key={day.dayOfWeek}
+              action={updateBusinessHourAction.bind(null, day.dayOfWeek)}
+              className="flex flex-wrap items-center gap-3 p-4"
+            >
+              <span className="w-24 shrink-0 font-medium text-slate-900">{DAY_LABELS[day.dayOfWeek]}</span>
+              <label className="flex items-center gap-1.5 text-sm text-slate-700">
+                <input type="checkbox" name="isOpen" defaultChecked={day.isOpen} />
+                Abierto
+              </label>
+              <label className="flex items-center gap-1.5 text-sm text-slate-700">
+                Desde
+                <input type="time" name="openTime" defaultValue={day.openTime} className="input" />
+              </label>
+              <label className="flex items-center gap-1.5 text-sm text-slate-700">
+                Hasta
+                <input type="time" name="closeTime" defaultValue={day.closeTime} className="input" />
+              </label>
+              <button type="submit" className="ml-auto rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white">
+                Guardar
+              </button>
+            </form>
+          ))}
+        </div>
+
+        <div className="mt-4 max-w-sm">
+          <p className="text-sm font-medium text-slate-700">Margen entre citas</p>
+          <p className="mt-1 text-xs text-slate-500">
+            Minutos de limpieza/preparación que se dejan libres después de cada cita al calcular
+            disponibilidad.
+          </p>
+          <form action={updateBufferTimeMinutesAction} className="mt-2 flex gap-2">
+            <input
+              name="bufferTimeMinutes"
+              type="number"
+              min={0}
+              step={5}
+              defaultValue={bufferTimeMinutes}
+              className="input w-28"
+            />
+            <button type="submit" className="rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-medium text-white">
+              Guardar
+            </button>
+          </form>
+        </div>
       </section>
 
       <section>

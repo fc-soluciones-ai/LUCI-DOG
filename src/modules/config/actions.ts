@@ -6,7 +6,8 @@ import {
   setEquipmentCategoryActive,
   updateEquipmentCategory,
 } from './equipmentCategories'
-import { updatePaymentInfoText } from './settings'
+import { updateBufferTimeMinutes, updatePaymentInfoText } from './settings'
+import { updateBusinessHour } from './businessHours'
 import {
   getBrandingAssetPath,
   setBrandingAsset,
@@ -58,6 +59,28 @@ export async function updatePaymentInfoTextAction(formData: FormData) {
   await updatePaymentInfoText(text)
   revalidatePath('/admin/configuracion')
   revalidatePath('/client/facturas')
+}
+
+function revalidateAgendaEverywhere() {
+  revalidatePath('/admin/configuracion')
+  revalidatePath('/book')
+  revalidatePath('/client/citas')
+  revalidatePath('/dashboard-tv')
+}
+
+export async function updateBufferTimeMinutesAction(formData: FormData) {
+  const minutes = Number(formData.get('bufferTimeMinutes') ?? 15)
+  if (!Number.isFinite(minutes) || minutes < 0) return
+  await updateBufferTimeMinutes(Math.round(minutes))
+  revalidateAgendaEverywhere()
+}
+
+export async function updateBusinessHourAction(dayOfWeek: number, formData: FormData) {
+  const isOpen = formData.get('isOpen') === 'on'
+  const openTime = String(formData.get('openTime') ?? '08:00')
+  const closeTime = String(formData.get('closeTime') ?? '19:00')
+  await updateBusinessHour(dayOfWeek, { isOpen, openTime, closeTime })
+  revalidateAgendaEverywhere()
 }
 
 function str(formData: FormData, key: string): string | undefined {

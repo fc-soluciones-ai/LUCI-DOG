@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createSelfServiceBooking } from '@/modules/agenda/booking'
 import { BookingBlockedError, ValidationError } from '@/modules/agenda/errors'
+import { parseZonedDateTime } from '@/modules/agenda/timezone'
 
 const bookingSchema = z.object({
   tutor: z.object({
@@ -19,7 +20,11 @@ const bookingSchema = z.object({
     weightEstimated: z.coerce.number().positive().optional(),
   }),
   serviceId: z.string().min(1),
-  scheduledStart: z.coerce.date(),
+  // String sin offset (ej. "2026-09-06T10:00", tal como lo entrega un
+  // <input type="datetime-local">) — se interpreta explícitamente como hora
+  // de Costa Rica más abajo. z.coerce.date() lo parseaba como hora del
+  // servidor (UTC en Vercel), desfasando la cita hasta 6 horas.
+  scheduledStart: z.string().min(1),
   antiFraudConsent: z.literal(true),
 })
 
@@ -32,7 +37,10 @@ export async function POST(request: Request) {
   }
 
   try {
-    const appointment = await createSelfServiceBooking(parsed.data)
+    const appointment = await createSelfServiceBooking({
+      ...parsed.data,
+      scheduledStart: parseZonedDateTime(parsed.data.scheduledStart),
+    })
     return NextResponse.json(appointment, { status: 201 })
   } catch (error) {
     if (error instanceof BookingBlockedError) {

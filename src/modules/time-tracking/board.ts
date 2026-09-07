@@ -1,6 +1,7 @@
 import { AppointmentStatus, NotificationStage, NotificationStatus, Role } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { computeLiveStage } from './liveStatus'
+import { zonedDayRange } from '@/modules/agenda/timezone'
 
 const STAGE_LABEL: Record<string, string> = {
   BATH: 'Baño',
@@ -13,17 +14,9 @@ const STAGE_LABEL: Record<string, string> = {
   OTHER: 'Otro',
 }
 
-function todayRange() {
-  const start = new Date()
-  start.setHours(0, 0, 0, 0)
-  const end = new Date(start)
-  end.setDate(end.getDate() + 1)
-  return { start, end }
-}
-
 /** Estado del tablero en tiempo real (Módulo 4): agenda de hoy con semáforo por etapa. */
 export async function getTodayBoard() {
-  const { start, end } = todayRange()
+  const { start, end } = zonedDayRange(new Date())
   const now = new Date()
 
   const appointments = await prisma.appointment.findMany({

@@ -1,6 +1,7 @@
 import { NotificationStatus } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { WHATSAPP_STAGE_TEMPLATE, getWhatsAppProvider } from '@/lib/whatsapp/adapter'
+import { formatInBusinessTz } from '@/modules/agenda/timezone'
 
 /**
  * Envía las notificaciones de WhatsApp cuya hora programada ya llegó.
@@ -32,7 +33,9 @@ export async function dispatchDueNotifications() {
         variables: {
           tutorName: notification.tutor.fullName,
           petName: notification.appointment?.pet.name ?? '',
-          date: notification.appointment?.scheduledStart.toLocaleString('es-MX') ?? '',
+          date: notification.appointment
+            ? formatInBusinessTz(notification.appointment.scheduledStart, "d 'de' MMMM, h:mm a")
+            : '',
           mapUrl: notification.tutor.addressMapUrl ?? '',
           total: notification.appointment?.quoteFinal?.toString() ?? '',
         },

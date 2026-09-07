@@ -3,6 +3,7 @@ import { listBookableServices, listClientAppointments, listClientPets } from '@/
 import { cancelAppointmentByClientAction } from '@/modules/client/actions'
 import { AppointmentFormModal } from '@/components/client/AppointmentFormModal'
 import { DataTableActions } from '@/components/admin/DataTableActions'
+import { formatInBusinessTz } from '@/modules/agenda/timezone'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,7 +48,7 @@ export default async function ClientCitasPage() {
         <h1 className="text-2xl font-semibold text-slate-900">Mis Citas</h1>
         <AppointmentFormModal
           mode="create"
-          pets={pets.map((pet) => ({ id: pet.id, name: pet.name }))}
+          pets={pets.map((pet) => ({ id: pet.id, name: pet.name, sizeCategory: pet.sizeCategory }))}
           services={services.map((service) => ({ ...service, basePrice: Number(service.basePrice) }))}
         />
       </div>
@@ -74,7 +75,7 @@ export default async function ClientCitasPage() {
                   {appointment.pet.name} — {appointment.service.name}
                 </p>
                 <p className="text-sm text-slate-500">
-                  {appointment.scheduledStart.toLocaleString('es-CR', { dateStyle: 'medium', timeStyle: 'short' })}
+                  {formatInBusinessTz(appointment.scheduledStart, "d 'de' MMMM, h:mm a")}
                 </p>
               </div>
             </div>
@@ -88,6 +89,7 @@ export default async function ClientCitasPage() {
                   appointment={{
                     id: appointment.id,
                     petName: appointment.pet.name,
+                    petSizeCategory: appointment.pet.sizeCategory,
                     serviceId: appointment.serviceId,
                     serviceName: appointment.service.name,
                   }}
@@ -96,7 +98,7 @@ export default async function ClientCitasPage() {
               {CANCELLABLE.has(appointment.status) && (
                 <DataTableActions
                   deleteLabel="Cancelar"
-                  deleteConfirmText={`¿Cancelar la cita de ${appointment.pet.name} el ${appointment.scheduledStart.toLocaleDateString('es-CR', { dateStyle: 'medium' })}?`}
+                  deleteConfirmText={`¿Cancelar la cita de ${appointment.pet.name} el ${formatInBusinessTz(appointment.scheduledStart, "d 'de' MMMM")}?`}
                   onDelete={async () => {
                     'use server'
                     await cancelAppointmentByClientAction(appointment.id)

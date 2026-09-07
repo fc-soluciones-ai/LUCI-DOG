@@ -1,17 +1,7 @@
 import { AppointmentStatus } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-
-// Ventana de jornada laboral mostrada en el eje X del Gantt de la TV.
-export const WORKDAY_START_HOUR = 8
-export const WORKDAY_END_HOUR = 19
-
-function todayRange() {
-  const start = new Date()
-  start.setHours(0, 0, 0, 0)
-  const end = new Date(start)
-  end.setDate(end.getDate() + 1)
-  return { start, end }
-}
+import { zonedDayOfWeek, zonedDayRange } from '@/modules/agenda/timezone'
+import { getBusinessHourForDay } from '@/modules/config/businessHours'
 
 async function fetchPipelineAppointmentsForDay(start: Date, end: Date) {
   return prisma.appointment.findMany({
@@ -62,8 +52,9 @@ export interface GanttBlock {
 
 /** Tablero para el Dashboard TV: lanes por estación + bloques tipo Gantt (Módulo Control Center). */
 export async function getPipelineBoard() {
-  const { start, end } = todayRange()
   const now = new Date()
+  const { start, end } = zonedDayRange(now)
+  const businessHour = await getBusinessHourForDay(zonedDayOfWeek(now))
 
   const [appointments, workstations] = await Promise.all([
     fetchPipelineAppointmentsForDay(start, end),
@@ -143,10 +134,15 @@ export async function getPipelineBoard() {
 
   const unassigned = blocks.filter((b) => !b.workstationId)
 
+  // Los ticks de hora del Gantt son enteros (ver TvBoard.tsx) — se ignoran los
+  // minutos del horario configurado, solo se usa la hora de apertura/cierre.
+  const [openHour] = businessHour.openTime.split(':').map(Number)
+  const [closeHour] = businessHour.closeTime.split(':').map(Number)
+
   return {
     date: start.toISOString(),
-    workdayStartHour: WORKDAY_START_HOUR,
-    workdayEndHour: WORKDAY_END_HOUR,
+    workdayStartHour: openHour,
+    workdayEndHour: closeHour,
     now: now.toISOString(),
     workstations: workstations.map((w) => ({ id: w.id, name: w.name, category: w.category })),
     blocksByWorkstation: Object.fromEntries(byWorkstation.entries()),
