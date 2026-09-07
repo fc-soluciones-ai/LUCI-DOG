@@ -1,5 +1,6 @@
 import { getDailyPrepPlan } from '@/modules/mise-en-place/planner'
 import { regeneratePlanAction } from '@/modules/mise-en-place/actions'
+import { formatInBusinessTz, parseZonedDateTime, zonedDayStart } from '@/modules/agenda/timezone'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,20 +10,19 @@ const TYPE_LABEL: Record<string, string> = {
   SAFETY_EQUIPMENT: 'Equipo de seguridad',
 }
 
-function toDateInputValue(date: Date) {
-  return date.toISOString().slice(0, 10)
-}
-
 export default async function MiseEnPlacePage({
   searchParams,
 }: {
   searchParams: Promise<{ date?: string }>
 }) {
   const { date } = await searchParams
-  const tomorrow = new Date()
-  tomorrow.setDate(tomorrow.getDate() + 1)
 
-  const forDate = date ? new Date(`${date}T00:00:00`) : tomorrow
+  // "Mañana" en el calendario de Costa Rica, no en el del servidor (Vercel
+  // corre en UTC) — mismo helper que ya corrige el resto del motor de
+  // agenda. El admin puede elegir cualquier día, pasado o futuro: el input
+  // de fecha de abajo no tiene (ni debe tener) un `min`/`max`.
+  const tomorrow = new Date(zonedDayStart(new Date()).getTime() + 24 * 60 * 60 * 1000)
+  const forDate = date ? parseZonedDateTime(`${date}T00:00:00`) : tomorrow
   const plan = await getDailyPrepPlan(forDate)
 
   const groups: Record<string, NonNullable<typeof plan>['items']> = {
@@ -40,7 +40,7 @@ export default async function MiseEnPlacePage({
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">Mise en Place</h1>
           <p className="text-slate-600">
-            Preparación para el <strong>{forDate.toLocaleDateString('es-MX', { dateStyle: 'full' })}</strong>
+            Preparación para el <strong>{formatInBusinessTz(forDate, "EEEE d 'de' MMMM 'de' yyyy")}</strong>
           </p>
         </div>
         <form action={regeneratePlanAction.bind(null, forDate.toISOString())}>
@@ -51,7 +51,7 @@ export default async function MiseEnPlacePage({
       </div>
 
       <form method="get" className="mt-4">
-        <input type="date" name="date" defaultValue={toDateInputValue(forDate)} className="input max-w-xs" />
+        <input type="date" name="date" defaultValue={formatInBusinessTz(forDate, 'yyyy-MM-dd')} className="input max-w-xs" />
       </form>
 
       {!plan ? (

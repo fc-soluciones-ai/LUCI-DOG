@@ -1,6 +1,7 @@
 import { AppointmentStatus, InstrumentStatus, InstrumentType, PrepItemType } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { STAGE_INSTRUMENT_TYPES, sizeMultiplier } from '@/modules/shared/grooming'
+import { zonedDayRange } from '@/modules/agenda/timezone'
 
 const INSTRUMENT_TYPE_LABEL: Record<InstrumentType, string> = {
   BLADE: 'Cuchillas',
@@ -8,14 +9,6 @@ const INSTRUMENT_TYPE_LABEL: Record<InstrumentType, string> = {
   SCISSORS: 'Tijeras',
   RAKE: 'Rastrillos',
   OTHER: 'Otro instrumental',
-}
-
-function dayRange(date: Date) {
-  const start = new Date(date)
-  start.setHours(0, 0, 0, 0)
-  const end = new Date(start)
-  end.setDate(end.getDate() + 1)
-  return { start, end }
 }
 
 async function fetchAppointmentsForDay(start: Date, end: Date) {
@@ -46,7 +39,7 @@ type DayFormula = DayAppointment['service']['formulas'][number]
  * supera el stock disponible.
  */
 export async function generateDailyPrepPlan(forDate: Date) {
-  const { start, end } = dayRange(forDate)
+  const { start, end } = zonedDayRange(forDate)
   const appointments = await fetchAppointmentsForDay(start, end)
 
   // --- Fórmulas cosméticas ---
@@ -159,7 +152,7 @@ export async function generateDailyPrepPlan(forDate: Date) {
 }
 
 export async function getDailyPrepPlan(forDate: Date) {
-  const { start } = dayRange(forDate)
+  const { start } = zonedDayRange(forDate)
   return prisma.dailyPrepPlan.findUnique({
     where: { forDate: start },
     include: { items: { orderBy: { type: 'asc' } } },
