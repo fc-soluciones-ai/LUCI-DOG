@@ -29,6 +29,12 @@ export function PetCard({ pet }: { pet: Pet }) {
     setClientError(null)
     if (!file) return
 
+    if (!file.type.startsWith('image/')) {
+      setClientError('Ese archivo no es una imagen. Selecciona una foto (JPG, PNG o WEBP).')
+      input.value = ''
+      return
+    }
+
     setPreparing(true)
     const prepared = await compressImageIfNeeded(file)
     setPreparing(false)
@@ -75,7 +81,6 @@ export function PetCard({ pet }: { pet: Pet }) {
             type="file"
             name="photo"
             accept="image/jpeg,image/png,image/webp"
-            capture="environment"
             className="hidden"
             onChange={handleFileSelected}
           />
