@@ -101,7 +101,7 @@ export function ImageUploader({ name = 'image', removeFieldName = 'removeImage',
           ref={inputRef}
           type="file"
           name={name}
-          accept="image/jpeg,image/png,image/webp"
+          accept="image/*"
           className="hidden"
           onChange={(event) => void applyFile(event.target.files?.[0])}
         />

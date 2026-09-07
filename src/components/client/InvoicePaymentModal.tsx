@@ -152,7 +152,7 @@ export function InvoicePaymentModal({ invoiceId, paymentInfoText, rejectionReaso
                 ref={inputRef}
                 type="file"
                 name="receipt"
-                accept="image/jpeg,image/png,image/webp,application/pdf"
+                accept="image/*,application/pdf"
                 className="hidden"
                 onChange={(event) => void applyFile(event.target.files?.[0])}
               />

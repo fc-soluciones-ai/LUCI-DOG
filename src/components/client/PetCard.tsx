@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { uploadPetPhotoAction, type UploadPetPhotoState } from '@/modules/client/actions'
 import { compressImageIfNeeded, replaceInputFile, validateUploadSize } from '@/lib/client/imageUpload'
 
+const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+
 interface Pet {
   id: string
   name: string
@@ -29,8 +31,8 @@ export function PetCard({ pet }: { pet: Pet }) {
     setClientError(null)
     if (!file) return
 
-    if (!file.type.startsWith('image/')) {
-      setClientError('Ese archivo no es una imagen. Selecciona una foto (JPG, PNG o WEBP).')
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setClientError('Ese archivo no es una imagen válida. Selecciona una foto (JPG, PNG o WEBP).')
       input.value = ''
       return
     }
@@ -80,7 +82,7 @@ export function PetCard({ pet }: { pet: Pet }) {
             ref={inputRef}
             type="file"
             name="photo"
-            accept="image/jpeg,image/png,image/webp"
+            accept="image/*"
             className="hidden"
             onChange={handleFileSelected}
           />
