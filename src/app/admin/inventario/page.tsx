@@ -156,9 +156,21 @@ export default async function InventarioPage() {
                     </span>
                   )}
                   <form action={restockProductAction.bind(null, product.id)} className="flex gap-1">
-                    <input type="number" name="quantity" placeholder="cantidad" className="input w-24 text-xs" />
-                    <button type="submit" className="rounded bg-slate-900 px-2 py-1 text-xs font-medium text-white">
-                      Ajustar Stock
+                    <input
+                      type="number"
+                      name="quantity"
+                      min="0.01"
+                      step="0.01"
+                      placeholder="cantidad recibida"
+                      title="Se suma al stock actual — no lo reemplaza. Para descontar consumo, se registra automáticamente al cerrar cada cita."
+                      className="input w-32 text-xs"
+                    />
+                    <button
+                      type="submit"
+                      title="Se suma al stock actual — no lo reemplaza. Para descontar consumo, se registra automáticamente al cerrar cada cita."
+                      className="rounded bg-slate-900 px-2 py-1 text-xs font-medium text-white"
+                    >
+                      + Agregar stock
                     </button>
                   </form>
                   <DataTableActions
