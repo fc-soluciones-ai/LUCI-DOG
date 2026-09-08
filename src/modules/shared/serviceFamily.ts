@@ -32,6 +32,18 @@ function detectFamily(name: string): (typeof FAMILY_ORDER)[number] {
   return 'Otros servicios'
 }
 
+const FAMILY_ICON: Record<(typeof FAMILY_ORDER)[number], string> = {
+  Baño: '🛁',
+  Grooming: '✂️',
+  'Grooming Premium': '✨',
+  'Otros servicios': '🐾',
+}
+
+/** Ícono por familia de servicio — antes el mismo emoji de tijera para las 14 filas (auditoría UX). */
+export function serviceFamilyIcon(name: string): string {
+  return FAMILY_ICON[detectFamily(name)]
+}
+
 export interface ServiceFamilyGroup<T> {
   label: string
   services: T[]

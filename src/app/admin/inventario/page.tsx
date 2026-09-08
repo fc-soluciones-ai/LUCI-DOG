@@ -16,6 +16,7 @@ import {
 } from '@/modules/inventory/actions'
 import { DataTableActions } from '@/components/admin/DataTableActions'
 import { HealthProgressBar } from '@/components/admin/HealthProgressBar'
+import { EmptyState } from '@/components/admin/EmptyState'
 import { listActiveProductCategories, listActiveUnitsOfMeasure } from '@/modules/config/productCatalogs'
 
 export const dynamic = 'force-dynamic'
@@ -56,7 +57,9 @@ export default async function InventarioPage() {
       <section>
         <h2 className="text-lg font-medium text-slate-900">Cierres de servicio pendientes</h2>
         {pendingClosures.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-500">No hay citas completadas pendientes de registrar consumo.</p>
+          <div className="mt-2">
+            <EmptyState icon="✅" title="No hay citas completadas pendientes de registrar consumo." />
+          </div>
         ) : (
           <div className="mt-3 space-y-4">
             {pendingClosures.map((appointment) => {

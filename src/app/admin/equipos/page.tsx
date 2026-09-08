@@ -9,6 +9,7 @@ import {
 } from '@/modules/inventory/actions'
 import { DataTableActions } from '@/components/admin/DataTableActions'
 import { HealthProgressBar } from '@/components/admin/HealthProgressBar'
+import { EmptyState } from '@/components/admin/EmptyState'
 import { formatCRC } from '@/lib/currency'
 
 export const dynamic = 'force-dynamic'
@@ -67,9 +68,11 @@ export default async function EquiposPage({ searchParams }: { searchParams: Prom
 
       <div className="space-y-4">
         {equipment.length === 0 && (
-          <p className="text-sm text-slate-500">
-            {q ? <>Sin equipos que coincidan con &quot;{q}&quot;.</> : 'Sin equipos registrados todavía.'}
-          </p>
+          <EmptyState
+            icon="🌀"
+            title={q ? `Sin equipos que coincidan con "${q}".` : 'Sin equipos registrados todavía.'}
+            action={q ? undefined : { label: '+ Registrar el primer equipo', href: '#nuevo-equipo' }}
+          />
         )}
 
         {equipment.map((item) => (
@@ -255,7 +258,7 @@ export default async function EquiposPage({ searchParams }: { searchParams: Prom
         ))}
       </div>
 
-      <details>
+      <details id="nuevo-equipo">
         <summary className="cursor-pointer text-sm font-medium text-slate-700">+ Nuevo equipo</summary>
         <form action={createEquipmentAction} className="mt-3 grid max-w-lg gap-2 sm:grid-cols-2">
           <input name="name" required placeholder="Nombre" className="input" />

@@ -2,6 +2,7 @@ import { getInvoicesNeedingAttention, getPendingClosures } from '@/modules/billi
 import { closeServiceAction, manuallyUnblockAction, rejectProofAction, verifyProofAction } from '@/modules/billing/actions'
 import { getBranding } from '@/modules/config/branding'
 import { getPaymentInfoText } from '@/modules/config/settings'
+import { EmptyState } from '@/components/admin/EmptyState'
 import { formatCurrency } from '@/lib/currency'
 
 export const dynamic = 'force-dynamic'
@@ -69,7 +70,9 @@ export default async function FacturacionPage() {
       <section>
         <h2 className="text-lg font-medium text-slate-900">Cierres de servicio pendientes</h2>
         {pendingClosures.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-500">No hay citas completadas pendientes de facturar.</p>
+          <div className="mt-2">
+            <EmptyState icon="✅" title="No hay citas completadas pendientes de facturar." />
+          </div>
         ) : (
           <div className="mt-3 space-y-4">
             {pendingClosures.map((appointment) => (
@@ -130,7 +133,9 @@ export default async function FacturacionPage() {
       <section>
         <h2 className="text-lg font-medium text-slate-900">Comprobantes pendientes de verificar</h2>
         {invoicesNeedingAttention.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-500">Sin comprobantes pendientes.</p>
+          <div className="mt-2">
+            <EmptyState icon="✅" title="Sin comprobantes pendientes." />
+          </div>
         ) : (
           <div className="mt-3 space-y-3">
             {invoicesNeedingAttention.map((invoice) => (
