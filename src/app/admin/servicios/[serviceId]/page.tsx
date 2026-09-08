@@ -31,7 +31,10 @@ const STAGE_OPTIONS = Object.keys(STAGE_LABEL)
 
 export default async function ServiceDetailPage({ params }: { params: Promise<{ serviceId: string }> }) {
   const { serviceId } = await params
-  const service = await prisma.service.findUnique({ where: { id: serviceId } })
+  const service = await prisma.service.findUnique({
+    where: { id: serviceId },
+    include: { pipeline: { include: { steps: { orderBy: { order: 'asc' } } } } },
+  })
   if (!service) notFound()
 
   const [formulas, stageTemplates, products] = await Promise.all([
@@ -39,6 +42,12 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
     listStageTemplatesForService(serviceId),
     listProducts(),
   ])
+
+  // Si el servicio tiene un Proceso activo con etapas, ese es el que manda para
+  // Mise en Place y el cierre de inventario (ver resolveServiceStages) — evita
+  // que el admin edite Etapas estándar creyendo que se usan cuando no es así.
+  const governingPipeline =
+    service.pipeline && service.pipeline.active && service.pipeline.steps.length > 0 ? service.pipeline : null
 
   return (
     <div className="space-y-8">
@@ -160,11 +169,38 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
       <section>
         <h2 className="text-lg font-medium text-slate-900">Etapas estándar</h2>
         <p className="mt-1 text-sm text-slate-500">
-          Secuencia del servicio (Baño, Secado, Corte...) — Mise en Place usa esto para proyectar cuánto instrumental
-          hace falta cada día.
+          Secuencia del servicio (Baño, Secado, Corte...) — Mise en Place y el cierre de inventario usan esto para
+          proyectar cuánto instrumental hace falta.
         </p>
 
-        <div className="mt-3 divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
+        {governingPipeline ? (
+          <div className="mt-3 rounded-lg border border-indigo-200 bg-indigo-50 p-4">
+            <p className="text-sm text-indigo-900">
+              Este servicio tiene un <strong>Proceso vinculado</strong> en Dashboard TV (
+              <strong>{governingPipeline.name}</strong>) — mientras esté activo, sus etapas son la fuente que usa
+              Mise en Place y el cierre de inventario, no las de abajo.{' '}
+              <Link href="/admin/procesos" className="font-medium underline">
+                Editar etapas en Procesos →
+              </Link>
+            </p>
+            <div className="mt-3 divide-y divide-indigo-200 rounded-md border border-indigo-200 bg-white">
+              {governingPipeline.steps.map((step) => (
+                <div key={step.id} className="flex items-center justify-between p-3 text-sm">
+                  <span className="text-slate-900">
+                    {step.order}. {step.name} — {STAGE_LABEL[step.stageType] ?? step.stageType}
+                  </span>
+                  <span className="text-slate-500">{step.standardDurationMin} min</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        <div
+          className={`mt-3 divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white ${
+            governingPipeline ? 'pointer-events-none opacity-50' : ''
+          }`}
+        >
           {stageTemplates.length === 0 && <p className="p-4 text-sm text-slate-500">Sin etapas registradas todavía.</p>}
           {stageTemplates.map((stage) => (
             <div key={stage.id} className="flex items-center justify-between gap-3 p-4">
@@ -226,26 +262,28 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
           ))}
         </div>
 
-        <details className="mt-3">
-          <summary className="cursor-pointer text-sm font-medium text-slate-700">+ Nueva etapa</summary>
-          <form action={createStageTemplateAction.bind(null, serviceId)} className="mt-3 grid max-w-lg gap-2 sm:grid-cols-3">
-            <select name="stageType" required defaultValue="" className="input">
-              <option value="" disabled>
-                Etapa
-              </option>
-              {STAGE_OPTIONS.map((option) => (
-                <option key={option} value={option}>
-                  {STAGE_LABEL[option]}
+        {governingPipeline ? null : (
+          <details className="mt-3">
+            <summary className="cursor-pointer text-sm font-medium text-slate-700">+ Nueva etapa</summary>
+            <form action={createStageTemplateAction.bind(null, serviceId)} className="mt-3 grid max-w-lg gap-2 sm:grid-cols-3">
+              <select name="stageType" required defaultValue="" className="input">
+                <option value="" disabled>
+                  Etapa
                 </option>
-              ))}
-            </select>
-            <input name="order" type="number" required placeholder="Orden" className="input" />
-            <input name="standardDurationMin" type="number" required placeholder="Duración (min)" className="input" />
-            <button type="submit" className="col-span-full w-fit rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white">
-              Crear etapa
-            </button>
-          </form>
-        </details>
+                {STAGE_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {STAGE_LABEL[option]}
+                  </option>
+                ))}
+              </select>
+              <input name="order" type="number" required placeholder="Orden" className="input" />
+              <input name="standardDurationMin" type="number" required placeholder="Duración (min)" className="input" />
+              <button type="submit" className="col-span-full w-fit rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white">
+                Crear etapa
+              </button>
+            </form>
+          </details>
+        )}
       </section>
     </div>
   )

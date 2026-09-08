@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { listPipelines, listServicesWithoutPipeline } from '@/modules/control-center/pipelines'
 import {
   createPipelineAction,
@@ -48,7 +49,19 @@ export default async function ProcesosAdminPage() {
               <div>
                 <p className="font-medium text-slate-900">{pipeline.name}</p>
                 <p className="text-sm text-slate-500">
-                  {pipeline.service ? `Vinculado a: ${pipeline.service.name}` : 'Sin servicio vinculado'}
+                  {pipeline.service ? (
+                    <>
+                      Vinculado a:{' '}
+                      <Link href={`/admin/servicios/${pipeline.service.id}`} className="underline hover:text-slate-700">
+                        {pipeline.service.name}
+                      </Link>
+                      {pipeline.active && pipeline.steps.length > 0
+                        ? ' — estas etapas alimentan Mise en Place y el cierre de inventario para este servicio.'
+                        : ''}
+                    </>
+                  ) : (
+                    'Sin servicio vinculado'
+                  )}
                   {pipeline.description ? ` · ${pipeline.description}` : ''}
                 </p>
               </div>

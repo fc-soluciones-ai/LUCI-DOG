@@ -1,6 +1,7 @@
 import { AppointmentStatus, InventoryTxType } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { sizeMultiplier, STAGE_INSTRUMENT_TYPES } from '@/modules/shared/grooming'
+import type { ResolvedStage } from '@/modules/shared/serviceStages'
 import { computeInstrumentStatus } from './instruments'
 
 /**
@@ -22,6 +23,7 @@ export async function getPendingInventoryClosures() {
         include: {
           formulas: { include: { product: true } },
           stageTemplates: true,
+          pipeline: { include: { steps: true } },
         },
       },
     },
@@ -29,8 +31,12 @@ export async function getPendingInventoryClosures() {
   })
 }
 
-/** Instrumental sugerido para el cierre, con la duración estándar de su etapa como default. */
-export function suggestedInstrumentTypesForService(stageTemplates: { stageType: string; standardDurationMin: number }[]) {
+/**
+ * Instrumental sugerido para el cierre, con la duración estándar de su etapa
+ * como default. Recibe las etapas ya resueltas (ver `resolveServiceStages`)
+ * para usar siempre la misma fuente que Mise en Place.
+ */
+export function suggestedInstrumentTypesForService(stageTemplates: ResolvedStage[]) {
   const suggestions = new Map<string, number>()
   for (const stage of stageTemplates) {
     const types = STAGE_INSTRUMENT_TYPES[stage.stageType as keyof typeof STAGE_INSTRUMENT_TYPES] ?? []

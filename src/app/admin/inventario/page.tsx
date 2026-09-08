@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { listProducts } from '@/modules/inventory/products'
 import { listInstruments } from '@/modules/inventory/instruments'
 import { getPendingInventoryClosures, suggestedInstrumentTypesForService, suggestedMlForFormula } from '@/modules/inventory/serviceClosure'
+import { resolveServiceStages } from '@/modules/shared/serviceStages'
 import {
   closeServiceInventoryAction,
   createInstrumentAction,
@@ -59,7 +60,7 @@ export default async function InventarioPage() {
         ) : (
           <div className="mt-3 space-y-4">
             {pendingClosures.map((appointment) => {
-              const instrumentSuggestions = suggestedInstrumentTypesForService(appointment.service.stageTemplates)
+              const instrumentSuggestions = suggestedInstrumentTypesForService(resolveServiceStages(appointment.service))
 
               return (
                 <form

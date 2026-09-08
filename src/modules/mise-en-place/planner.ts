@@ -1,6 +1,7 @@
 import { AppointmentStatus, InstrumentStatus, InstrumentType, PrepItemType } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { STAGE_INSTRUMENT_TYPES, sizeMultiplier } from '@/modules/shared/grooming'
+import { resolveServiceStages } from '@/modules/shared/serviceStages'
 import { zonedDayRange } from '@/modules/agenda/timezone'
 
 const INSTRUMENT_TYPE_LABEL: Record<InstrumentType, string> = {
@@ -23,6 +24,7 @@ async function fetchAppointmentsForDay(start: Date, end: Date) {
         include: {
           formulas: { where: { active: true }, include: { product: true } },
           stageTemplates: { where: { active: true } },
+          pipeline: { include: { steps: true } },
         },
       },
     },
@@ -60,7 +62,7 @@ export async function generateDailyPrepPlan(forDate: Date) {
   const instrumentTypeDemand = new Map<InstrumentType, number>()
   for (const appointment of appointments) {
     const typesNeeded = new Set<InstrumentType>()
-    for (const stage of appointment.service.stageTemplates) {
+    for (const stage of resolveServiceStages(appointment.service)) {
       for (const type of STAGE_INSTRUMENT_TYPES[stage.stageType] ?? []) {
         typesNeeded.add(type)
       }
