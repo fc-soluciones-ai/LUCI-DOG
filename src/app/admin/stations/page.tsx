@@ -15,8 +15,9 @@ const STAGE_LABEL: Record<string, string> = {
   OTHER: 'Otro',
 }
 
-export default async function StationsAdminPage() {
-  const workstations = await listWorkstations()
+export default async function StationsAdminPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  const { q } = await searchParams
+  const workstations = await listWorkstations(q)
 
   return (
     <div className="space-y-8">
@@ -28,8 +29,16 @@ export default async function StationsAdminPage() {
         </p>
       </div>
 
+      <form method="get">
+        <input name="q" defaultValue={q ?? ''} placeholder="Buscar por nombre..." className="input max-w-sm" />
+      </form>
+
       <div className="divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
-        {workstations.length === 0 && <p className="p-4 text-sm text-slate-500">Sin estaciones todavía.</p>}
+        {workstations.length === 0 && (
+          <p className="p-4 text-sm text-slate-500">
+            {q ? <>Sin estaciones que coincidan con &quot;{q}&quot;.</> : 'Sin estaciones todavía.'}
+          </p>
+        )}
         {workstations.map((station) => (
           <div key={station.id} className="flex items-center justify-between p-4">
             <div>
@@ -84,7 +93,7 @@ export default async function StationsAdminPage() {
         ))}
       </div>
 
-      <details open={workstations.length === 0}>
+      <details open={workstations.length === 0 && !q}>
         <summary className="cursor-pointer text-sm font-medium text-slate-700">+ Nueva estación</summary>
         <form action={createWorkstationAction} className="mt-3 grid max-w-lg gap-2 sm:grid-cols-2">
           <input name="name" required placeholder='Nombre (ej. "Tina 1")' className="input" />

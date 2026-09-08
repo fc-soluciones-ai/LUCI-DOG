@@ -2,8 +2,16 @@ import { Role, UserRole } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
-export async function listProfiles() {
+export async function listProfiles(query?: string) {
   return prisma.profile.findMany({
+    where: query
+      ? {
+          OR: [
+            { fullName: { contains: query, mode: 'insensitive' } },
+            { email: { contains: query, mode: 'insensitive' } },
+          ],
+        }
+      : undefined,
     include: { staff: true, tutor: true },
     orderBy: [{ role: 'asc' }, { fullName: 'asc' }],
   })

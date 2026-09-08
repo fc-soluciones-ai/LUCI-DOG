@@ -7,8 +7,9 @@ import { formatCRC } from '@/lib/currency'
 
 export const dynamic = 'force-dynamic'
 
-export default async function ServiciosPage() {
-  const services = await listServices()
+export default async function ServiciosPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  const { q } = await searchParams
+  const services = await listServices(q)
 
   return (
     <div className="space-y-8">
@@ -17,8 +18,16 @@ export default async function ServiciosPage() {
         <p className="text-slate-600">Catálogo de servicios que se ofrecen en /book y se usan para facturar.</p>
       </div>
 
+      <form method="get">
+        <input name="q" defaultValue={q ?? ''} placeholder="Buscar por nombre..." className="input max-w-sm" />
+      </form>
+
       <div className="divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
-        {services.length === 0 && <p className="p-4 text-sm text-slate-500">Sin servicios registrados todavía.</p>}
+        {services.length === 0 && (
+          <p className="p-4 text-sm text-slate-500">
+            {q ? <>Sin servicios que coincidan con &quot;{q}&quot;.</> : 'Sin servicios registrados todavía.'}
+          </p>
+        )}
         {services.map((service) => (
           <div key={service.id} className="flex items-center justify-between gap-3 p-4">
             <div className="flex min-w-0 items-center gap-3">

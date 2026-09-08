@@ -36,11 +36,11 @@ function ActiveToggle({ profileId, active }: { profileId: string; active: boolea
   )
 }
 
-export default async function UsuariosPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
-  const { tab: tabParam } = await searchParams
+export default async function UsuariosPage({ searchParams }: { searchParams: Promise<{ tab?: string; q?: string }> }) {
+  const { tab: tabParam, q } = await searchParams
   const tab = parseTab(tabParam)
 
-  const profiles = await listProfiles()
+  const profiles = await listProfiles(q)
   const staff = profiles.filter((p) => p.role === 'ADMIN' || p.role === 'GROOMER')
   const clientes = profiles.filter((p) => p.role === 'CLIENT')
   const dispositivos = profiles.filter((p) => p.role === 'TV_DISPLAY')
@@ -50,6 +50,14 @@ export default async function UsuariosPage({ searchParams }: { searchParams: Pro
     { key: 'clientes', label: 'Clientes', count: clientes.length },
     { key: 'dispositivos', label: 'Dispositivos', count: dispositivos.length },
   ]
+
+  function tabHref(key: Tab) {
+    const params = new URLSearchParams()
+    if (key !== 'staff') params.set('tab', key)
+    if (q) params.set('q', q)
+    const qs = params.toString()
+    return qs ? `/admin/usuarios?${qs}` : '/admin/usuarios'
+  }
 
   return (
     <div className="space-y-8">
@@ -62,7 +70,7 @@ export default async function UsuariosPage({ searchParams }: { searchParams: Pro
         {TABS.map((t) => (
           <Link
             key={t.key}
-            href={t.key === 'staff' ? '/admin/usuarios' : `/admin/usuarios?tab=${t.key}`}
+            href={tabHref(t.key)}
             className={`border-b-2 px-3 py-2 text-sm font-medium ${
               tab === t.key
                 ? 'border-slate-900 text-slate-900'
@@ -74,13 +82,22 @@ export default async function UsuariosPage({ searchParams }: { searchParams: Pro
         ))}
       </div>
 
+      <form method="get">
+        <input type="hidden" name="tab" value={tab} />
+        <input name="q" defaultValue={q ?? ''} placeholder="Buscar por nombre o correo..." className="input max-w-sm" />
+      </form>
+
       {tab === 'staff' && (
         <div>
           <p className="mb-3 text-sm text-slate-500">
             Administradores y groomers — inician sesión en este panel y en Piso de trabajo.
           </p>
           <div className="divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
-            {staff.length === 0 && <p className="p-4 text-sm text-slate-500">Sin cuentas de staff todavía.</p>}
+            {staff.length === 0 && (
+              <p className="p-4 text-sm text-slate-500">
+                {q ? <>Sin resultados para &quot;{q}&quot;.</> : 'Sin cuentas de staff todavía.'}
+              </p>
+            )}
             {staff.map((profile) => (
               <div key={profile.id} className="flex items-center justify-between p-4">
                 <div>
@@ -144,7 +161,11 @@ export default async function UsuariosPage({ searchParams }: { searchParams: Pro
             .
           </p>
           <div className="divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
-            {clientes.length === 0 && <p className="p-4 text-sm text-slate-500">Sin clientes con acceso al portal todavía.</p>}
+            {clientes.length === 0 && (
+              <p className="p-4 text-sm text-slate-500">
+                {q ? <>Sin resultados para &quot;{q}&quot;.</> : 'Sin clientes con acceso al portal todavía.'}
+              </p>
+            )}
             {clientes.map((profile) => (
               <div key={profile.id} className="flex items-center justify-between p-4">
                 <div>
@@ -172,7 +193,11 @@ export default async function UsuariosPage({ searchParams }: { searchParams: Pro
             gestionan datos.
           </p>
           <div className="divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
-            {dispositivos.length === 0 && <p className="p-4 text-sm text-slate-500">Sin dispositivos registrados todavía.</p>}
+            {dispositivos.length === 0 && (
+              <p className="p-4 text-sm text-slate-500">
+                {q ? <>Sin resultados para &quot;{q}&quot;.</> : 'Sin dispositivos registrados todavía.'}
+              </p>
+            )}
             {dispositivos.map((profile) => (
               <div key={profile.id} className="flex items-center justify-between p-4">
                 <div>

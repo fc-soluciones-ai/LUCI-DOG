@@ -1,7 +1,10 @@
 import { prisma } from '@/lib/prisma'
 
-export async function listServices() {
-  return prisma.service.findMany({ orderBy: { name: 'asc' } })
+export async function listServices(query?: string) {
+  return prisma.service.findMany({
+    where: query ? { name: { contains: query, mode: 'insensitive' } } : undefined,
+    orderBy: { name: 'asc' },
+  })
 }
 
 export interface CreateServiceInput {

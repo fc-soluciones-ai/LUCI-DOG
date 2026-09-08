@@ -1,8 +1,11 @@
 import type { ServiceStageType } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 
-export async function listWorkstations() {
-  return prisma.workstation.findMany({ orderBy: [{ category: 'asc' }, { sortOrder: 'asc' }] })
+export async function listWorkstations(query?: string) {
+  return prisma.workstation.findMany({
+    where: query ? { name: { contains: query, mode: 'insensitive' } } : undefined,
+    orderBy: [{ category: 'asc' }, { sortOrder: 'asc' }],
+  })
 }
 
 export interface CreateWorkstationInput {

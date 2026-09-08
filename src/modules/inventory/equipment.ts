@@ -8,9 +8,12 @@ function getEquipmentHealthRatio(purchaseDate: Date, usefulLifeMonths: number, n
   return Math.max(0, Math.min(1, 1 - ageMonths / usefulLifeMonths))
 }
 
-export async function listEquipment() {
+export async function listEquipment(query?: string) {
   const equipment = await prisma.equipment.findMany({
-    where: { deletedAt: null },
+    where: {
+      deletedAt: null,
+      ...(query ? { name: { contains: query, mode: 'insensitive' } } : {}),
+    },
     orderBy: { name: 'asc' },
     include: {
       category: true,

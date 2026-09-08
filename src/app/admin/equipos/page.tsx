@@ -25,9 +25,10 @@ const STATUS_COLOR: Record<string, string> = {
   OUT_OF_SERVICE: 'bg-red-100 text-red-800',
 }
 
-export default async function EquiposPage() {
+export default async function EquiposPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+  const { q } = await searchParams
   const [equipment, categories, maintenanceAlerts] = await Promise.all([
-    listEquipment(),
+    listEquipment(q),
     listActiveEquipmentCategories(),
     getUpcomingMaintenanceAlerts(),
   ])
@@ -60,8 +61,16 @@ export default async function EquiposPage() {
         </div>
       )}
 
+      <form method="get">
+        <input name="q" defaultValue={q ?? ''} placeholder="Buscar por nombre..." className="input max-w-sm" />
+      </form>
+
       <div className="space-y-4">
-        {equipment.length === 0 && <p className="text-sm text-slate-500">Sin equipos registrados todavía.</p>}
+        {equipment.length === 0 && (
+          <p className="text-sm text-slate-500">
+            {q ? <>Sin equipos que coincidan con &quot;{q}&quot;.</> : 'Sin equipos registrados todavía.'}
+          </p>
+        )}
 
         {equipment.map((item) => (
           <div key={item.id} className="rounded-lg border border-slate-200 bg-white p-4">
