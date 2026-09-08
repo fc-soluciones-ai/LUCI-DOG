@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import type { Metadata, Viewport } from 'next'
 import type { ReactNode } from 'react'
 import { requireRole } from '@/modules/auth/profile'
@@ -6,6 +5,7 @@ import { signOutAction } from '@/modules/auth/actions'
 import { getBranding } from '@/modules/config/branding'
 import { RegisterServiceWorker } from '@/components/client/RegisterServiceWorker'
 import { InstallPWAPrompt } from '@/components/pwa/InstallPWAPrompt'
+import { AdminNav } from '@/components/admin/AdminNav'
 
 export async function generateMetadata(): Promise<Metadata> {
   const branding = await getBranding()
@@ -43,53 +43,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             )}
             {branding.businessName}
           </span>
-          <nav className="flex flex-wrap gap-4 text-sm text-slate-600">
-            <Link href="/admin/appointments" className="font-semibold text-slate-900 hover:underline">
-              Citas
-            </Link>
-            <Link href="/groomer" className="hover:text-slate-900">
-              Piso (Groomer)
-            </Link>
-            <Link href="/admin/clientes" className="hover:text-slate-900">
-              Clientes
-            </Link>
-            <Link href="/admin/mise-en-place" className="hover:text-slate-900">
-              Mise en Place
-            </Link>
-            <Link href="/admin/inventario" className="hover:text-slate-900">
-              Inventario
-            </Link>
-            <Link href="/admin/facturacion" className="hover:text-slate-900">
-              Facturación
-            </Link>
-            <Link href="/admin/reportes" className="hover:text-slate-900">
-              Reportes
-            </Link>
-            <Link href="/admin/equipos" className="hover:text-slate-900">
-              Equipos
-            </Link>
-            <Link href="/admin/stations" className="hover:text-slate-900">
-              Estaciones
-            </Link>
-            <Link href="/admin/servicios" className="hover:text-slate-900">
-              Servicios
-            </Link>
-            <Link href="/admin/procesos" className="hover:text-slate-900">
-              Procesos
-            </Link>
-            <Link href="/admin/configuracion" className="hover:text-slate-900">
-              Configuración
-            </Link>
-            <Link href="/admin/configuracion/branding" className="hover:text-slate-900">
-              Marca
-            </Link>
-            <Link href="/admin/usuarios" className="hover:text-slate-900">
-              Usuarios
-            </Link>
-            <Link href="/dashboard-tv" target="_blank" className="hover:text-slate-900">
-              TV ↗
-            </Link>
-          </nav>
+          <AdminNav />
           <div className="ml-auto flex items-center gap-3 text-sm text-slate-500">
             <span>{profile.fullName}</span>
             <form action={signOutAction}>
