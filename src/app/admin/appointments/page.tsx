@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { listAppointmentsForAdmin } from '@/modules/agenda/adminAppointments'
 import { formatInBusinessTz } from '@/modules/agenda/timezone'
 import { AdminAppointmentFormModal } from '@/components/admin/AdminAppointmentFormModal'
+import { AppointmentFilters } from '@/components/admin/AppointmentFilters'
 
 export const dynamic = 'force-dynamic'
 
@@ -70,44 +71,10 @@ export default async function AdminAppointmentsPage({ searchParams }: { searchPa
         />
       </div>
 
-      <form method="get" className="mt-6 flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-4">
-        <label className="text-sm text-slate-700">
-          Estado
-          <select name="status" defaultValue={params.status ?? ''} className="input mt-1">
-            <option value="">Todos</option>
-            {Object.entries(STATUS_LABEL).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="text-sm text-slate-700">
-          Desde
-          <input type="date" name="dateFrom" defaultValue={params.dateFrom ?? ''} className="input mt-1" />
-        </label>
-        <label className="text-sm text-slate-700">
-          Hasta
-          <input type="date" name="dateTo" defaultValue={params.dateTo ?? ''} className="input mt-1" />
-        </label>
-        <label className="text-sm text-slate-700">
-          Estación
-          <select name="workstationId" defaultValue={params.workstationId ?? ''} className="input mt-1">
-            <option value="">Todas</option>
-            {workstations.map((w) => (
-              <option key={w.id} value={w.id}>
-                {w.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button type="submit" className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white">
-          Filtrar
-        </button>
-        <a href="/admin/appointments" className="text-sm text-slate-500 hover:text-slate-900 hover:underline">
-          Limpiar filtros
-        </a>
-      </form>
+      <AppointmentFilters
+        statusOptions={Object.entries(STATUS_LABEL).map(([value, label]) => ({ value, label }))}
+        workstations={workstations}
+      />
 
       <div className="mt-6 divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
         {appointments.length === 0 && <p className="p-4 text-sm text-slate-500">Sin citas para estos filtros.</p>}

@@ -9,6 +9,7 @@ import {
 import { listFixedExpenses } from '@/modules/finance/expenses'
 import { createFixedExpenseAction, setFixedExpenseActiveAction } from '@/modules/finance/actions'
 import { formatCRC } from '@/lib/currency'
+import { MonthPicker } from '@/components/admin/MonthPicker'
 
 export const dynamic = 'force-dynamic'
 
@@ -46,13 +47,7 @@ export default async function ReportesPage({ searchParams }: { searchParams: Pro
         <p className="text-slate-600">Inteligencia financiera y los 5 reportes de operación.</p>
       </div>
 
-      <form method="get" className="flex items-center gap-2">
-        <label className="text-sm text-slate-600">Mes:</label>
-        <input type="month" name="month" defaultValue={monthValue} className="input max-w-xs" />
-        <button type="submit" className="rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white">
-          Ver
-        </button>
-      </form>
+      <MonthPicker initialValue={monthValue} />
 
       {/* Utilidad Neta Mensual */}
       <section>
