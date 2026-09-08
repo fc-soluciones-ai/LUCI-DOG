@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import {
   createEquipmentCategory,
+  reorderEquipmentCategories,
   setEquipmentCategoryActive,
   updateEquipmentCategory,
 } from './equipmentCategories'
@@ -19,6 +20,8 @@ import { deleteBrandingAssetFile, uploadBrandingAsset } from '@/lib/supabase/sto
 import {
   createProductCategory,
   createUnitOfMeasure,
+  reorderProductCategories,
+  reorderUnitsOfMeasure,
   setProductCategoryActive,
   setUnitOfMeasureActive,
   updateProductCategory,
@@ -26,16 +29,10 @@ import {
 } from './productCatalogs'
 import { createCustomerTag, setCustomerTagActive, setTutorTags, updateCustomerTag } from './customerTags'
 
-function num(formData: FormData, key: string): number | undefined {
-  const value = formData.get(key)
-  if (typeof value !== 'string' || value.trim() === '') return undefined
-  return Number(value)
-}
-
 export async function createEquipmentCategoryAction(formData: FormData) {
   const name = String(formData.get('name') ?? '').trim()
   if (!name) return
-  await createEquipmentCategory({ name, sortOrder: num(formData, 'sortOrder') })
+  await createEquipmentCategory({ name })
   revalidatePath('/admin/configuracion')
   revalidatePath('/admin/equipos')
 }
@@ -43,7 +40,7 @@ export async function createEquipmentCategoryAction(formData: FormData) {
 export async function updateEquipmentCategoryAction(id: string, formData: FormData) {
   const name = String(formData.get('name') ?? '').trim()
   if (!name) return
-  await updateEquipmentCategory(id, { name, sortOrder: num(formData, 'sortOrder') })
+  await updateEquipmentCategory(id, { name })
   revalidatePath('/admin/configuracion')
   revalidatePath('/admin/equipos')
 }
@@ -52,6 +49,11 @@ export async function deleteEquipmentCategoryAction(id: string) {
   await setEquipmentCategoryActive(id, false)
   revalidatePath('/admin/configuracion')
   revalidatePath('/admin/equipos')
+}
+
+export async function reorderEquipmentCategoriesAction(orderedIds: string[]) {
+  await reorderEquipmentCategories(orderedIds)
+  revalidatePath('/admin/configuracion')
 }
 
 export async function updatePaymentInfoTextAction(formData: FormData) {
@@ -165,7 +167,7 @@ export async function uploadBrandingAssetAction(
 export async function createProductCategoryAction(formData: FormData) {
   const name = String(formData.get('name') ?? '').trim()
   if (!name) return
-  await createProductCategory({ name, sortOrder: num(formData, 'sortOrder') })
+  await createProductCategory({ name })
   revalidatePath('/admin/configuracion')
   revalidatePath('/admin/inventario')
 }
@@ -173,7 +175,7 @@ export async function createProductCategoryAction(formData: FormData) {
 export async function updateProductCategoryAction(id: string, formData: FormData) {
   const name = String(formData.get('name') ?? '').trim()
   if (!name) return
-  await updateProductCategory(id, { name, sortOrder: num(formData, 'sortOrder') })
+  await updateProductCategory(id, { name })
   revalidatePath('/admin/configuracion')
   revalidatePath('/admin/inventario')
 }
@@ -184,13 +186,18 @@ export async function deleteProductCategoryAction(id: string) {
   revalidatePath('/admin/inventario')
 }
 
+export async function reorderProductCategoriesAction(orderedIds: string[]) {
+  await reorderProductCategories(orderedIds)
+  revalidatePath('/admin/configuracion')
+}
+
 // --- Unidades de medida ---
 
 export async function createUnitOfMeasureAction(formData: FormData) {
   const name = String(formData.get('name') ?? '').trim()
   const abbreviation = String(formData.get('abbreviation') ?? '').trim()
   if (!name || !abbreviation) return
-  await createUnitOfMeasure({ name, abbreviation, sortOrder: num(formData, 'sortOrder') })
+  await createUnitOfMeasure({ name, abbreviation })
   revalidatePath('/admin/configuracion')
   revalidatePath('/admin/inventario')
 }
@@ -199,7 +206,7 @@ export async function updateUnitOfMeasureAction(id: string, formData: FormData) 
   const name = String(formData.get('name') ?? '').trim()
   const abbreviation = String(formData.get('abbreviation') ?? '').trim()
   if (!name || !abbreviation) return
-  await updateUnitOfMeasure(id, { name, abbreviation, sortOrder: num(formData, 'sortOrder') })
+  await updateUnitOfMeasure(id, { name, abbreviation })
   revalidatePath('/admin/configuracion')
   revalidatePath('/admin/inventario')
 }
@@ -208,6 +215,11 @@ export async function deleteUnitOfMeasureAction(id: string) {
   await setUnitOfMeasureActive(id, false)
   revalidatePath('/admin/configuracion')
   revalidatePath('/admin/inventario')
+}
+
+export async function reorderUnitsOfMeasureAction(orderedIds: string[]) {
+  await reorderUnitsOfMeasure(orderedIds)
+  revalidatePath('/admin/configuracion')
 }
 
 // --- Etiquetas de clientes ---

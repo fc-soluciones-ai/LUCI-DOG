@@ -12,11 +12,12 @@ export async function listActiveProductCategories() {
 
 export interface CategoryInput {
   name: string
-  sortOrder?: number
 }
 
+/** El orden nuevo se agrega al final de la lista — se reordena arrastrando, no escribiendo un número. */
 export async function createProductCategory(input: CategoryInput) {
-  return prisma.productCategory.create({ data: input })
+  const last = await prisma.productCategory.findFirst({ orderBy: { sortOrder: 'desc' } })
+  return prisma.productCategory.create({ data: { ...input, sortOrder: (last?.sortOrder ?? 0) + 1 } })
 }
 
 export async function updateProductCategory(id: string, input: CategoryInput) {
@@ -25,6 +26,13 @@ export async function updateProductCategory(id: string, input: CategoryInput) {
 
 export async function setProductCategoryActive(id: string, active: boolean) {
   return prisma.productCategory.update({ where: { id }, data: { active } })
+}
+
+/** Reordena por arrastre en el admin — reemplaza el campo "Orden" manual. */
+export async function reorderProductCategories(orderedIds: string[]) {
+  return prisma.$transaction(
+    orderedIds.map((id, index) => prisma.productCategory.update({ where: { id }, data: { sortOrder: index } }))
+  )
 }
 
 // --- Unidades de medida ---
@@ -40,11 +48,12 @@ export async function listActiveUnitsOfMeasure() {
 export interface UnitInput {
   name: string
   abbreviation: string
-  sortOrder?: number
 }
 
+/** El orden nuevo se agrega al final de la lista — se reordena arrastrando, no escribiendo un número. */
 export async function createUnitOfMeasure(input: UnitInput) {
-  return prisma.unitOfMeasure.create({ data: input })
+  const last = await prisma.unitOfMeasure.findFirst({ orderBy: { sortOrder: 'desc' } })
+  return prisma.unitOfMeasure.create({ data: { ...input, sortOrder: (last?.sortOrder ?? 0) + 1 } })
 }
 
 export async function updateUnitOfMeasure(id: string, input: UnitInput) {
@@ -53,4 +62,11 @@ export async function updateUnitOfMeasure(id: string, input: UnitInput) {
 
 export async function setUnitOfMeasureActive(id: string, active: boolean) {
   return prisma.unitOfMeasure.update({ where: { id }, data: { active } })
+}
+
+/** Reordena por arrastre en el admin — reemplaza el campo "Orden" manual. */
+export async function reorderUnitsOfMeasure(orderedIds: string[]) {
+  return prisma.$transaction(
+    orderedIds.map((id, index) => prisma.unitOfMeasure.update({ where: { id }, data: { sortOrder: index } }))
+  )
 }
