@@ -21,8 +21,8 @@ async function fetchAppointmentsForDay(start: Date, end: Date) {
       pet: { include: { clinicalRecord: true } },
       service: {
         include: {
-          formulas: { include: { product: true } },
-          stageTemplates: true,
+          formulas: { where: { active: true }, include: { product: true } },
+          stageTemplates: { where: { active: true } },
         },
       },
     },

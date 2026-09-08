@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { listServices } from '@/modules/services/services'
 import { deleteServiceAction } from '@/modules/services/actions'
 import { DataTableActions } from '@/components/admin/DataTableActions'
@@ -45,6 +46,12 @@ export default async function ServiciosPage() {
               >
                 {service.active ? 'Activo' : 'Inactivo'}
               </span>
+              <Link
+                href={`/admin/servicios/${service.id}`}
+                className="text-xs font-medium text-slate-600 hover:text-slate-900 hover:underline"
+              >
+                Fórmulas y etapas
+              </Link>
               <ServiceFormModal
                 mode="edit"
                 service={{
