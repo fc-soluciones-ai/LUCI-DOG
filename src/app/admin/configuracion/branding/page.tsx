@@ -1,7 +1,7 @@
-import Link from 'next/link'
 import { getBranding } from '@/modules/config/branding'
 import { updateBrandingAction, updateWhatsappTemplateOverrideAction } from '@/modules/config/actions'
 import { BrandingAssetUploader } from '@/components/admin/BrandingAssetUploader'
+import { ConfigTabs } from '@/components/admin/ConfigTabs'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,15 +20,14 @@ export default async function BrandingPage() {
   return (
     <div className="space-y-10">
       <div>
-        <Link href="/admin/configuracion" className="text-sm text-slate-500 hover:text-slate-900">
-          ← Configuración
-        </Link>
-        <h1 className="mt-2 text-2xl font-semibold text-slate-900">Marca (White Label)</h1>
+        <h1 className="text-2xl font-semibold text-slate-900">Configuración</h1>
         <p className="text-slate-600">
           Personaliza el nombre, logo, colores y mensajes que ven tus clientes en el Portal del Cliente, el
           Dashboard TV y el panel de administración.
         </p>
       </div>
+
+      <ConfigTabs active="marca" />
 
       <section>
         <h2 className="text-lg font-medium text-slate-900">Identidad visual</h2>

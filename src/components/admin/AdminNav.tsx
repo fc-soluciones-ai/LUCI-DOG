@@ -52,7 +52,6 @@ const CATEGORIES: NavCategory[] = [
     label: 'Sistema',
     items: [
       { href: '/admin/configuracion', label: 'Configuración' },
-      { href: '/admin/configuracion/branding', label: 'Marca' },
       { href: '/admin/usuarios', label: 'Usuarios' },
       { href: '/dashboard-tv', label: 'TV', external: true },
     ],

@@ -21,6 +21,7 @@ import {
   updateUnitOfMeasureAction,
 } from '@/modules/config/actions'
 import { DataTableActions } from '@/components/admin/DataTableActions'
+import { ConfigTabs } from '@/components/admin/ConfigTabs'
 
 export const dynamic = 'force-dynamic'
 
@@ -41,6 +42,8 @@ export default async function ConfiguracionPage() {
         <h1 className="text-2xl font-semibold text-slate-900">Configuración</h1>
         <p className="text-slate-600">Catálogos que alimentan los selectores del sistema.</p>
       </div>
+
+      <ConfigTabs active="catalogos" />
 
       <section>
         <h2 className="text-lg font-medium text-slate-900">Tipo de equipo</h2>
