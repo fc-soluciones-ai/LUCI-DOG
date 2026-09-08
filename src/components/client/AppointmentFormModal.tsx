@@ -9,6 +9,7 @@ import {
   type ClientActionState,
 } from '@/modules/client/actions'
 import { formatCRC } from '@/lib/currency'
+import { groupServicesByFamily, serviceMatchesSize } from '@/modules/shared/serviceFamily'
 
 interface PetOption {
   id: string
@@ -123,12 +124,20 @@ export function AppointmentFormModal(props: Props) {
                   <option value="" disabled>
                     Selecciona un servicio
                   </option>
-                  {props.services.map((service) => (
-                    <option key={service.id} value={service.id}>
-                      {service.name} — {formatCRC(service.basePrice)} ({service.standardDurationMin} min)
-                    </option>
+                  {groupServicesByFamily(props.services).map((group) => (
+                    <optgroup key={group.label} label={group.label}>
+                      {group.services.map((service) => (
+                        <option key={service.id} value={service.id}>
+                          {serviceMatchesSize(service.name, sizeCategory) ? '✓ ' : ''}
+                          {service.name} — {formatCRC(service.basePrice)} ({service.standardDurationMin} min)
+                        </option>
+                      ))}
+                    </optgroup>
                   ))}
                 </select>
+                {sizeCategory && (
+                  <p className="mt-1 text-xs text-slate-400">✓ = talla registrada de tu mascota ({sizeCategory}).</p>
+                )}
               </label>
             </>
           ) : (

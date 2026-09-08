@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from 'react'
 import { formatCRC } from '@/lib/currency'
+import { groupServicesByFamily, serviceMatchesSize } from '@/modules/shared/serviceFamily'
 
 interface Service {
   id: string
@@ -16,6 +17,7 @@ export function BookingForm({ services }: { services: Service[] }) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [consent, setConsent] = useState(false)
   const [selectedServiceId, setSelectedServiceId] = useState('')
+  const [sizeCategory, setSizeCategory] = useState('')
 
   const selectedService = services.find((service) => service.id === selectedServiceId)
 
@@ -87,7 +89,7 @@ export function BookingForm({ services }: { services: Service[] }) {
         <legend className="font-medium text-slate-900">Datos de tu mascota</legend>
         <input name="petName" required placeholder="Nombre de tu mascota" className="input" />
         <input name="breed" required placeholder="Raza" className="input" />
-        <select name="sizeCategory" defaultValue="" className="input">
+        <select name="sizeCategory" value={sizeCategory} onChange={(event) => setSizeCategory(event.target.value)} className="input">
           <option value="">Tamaño aproximado</option>
           <option value="XS">Extra pequeño</option>
           <option value="S">Pequeño</option>
@@ -111,12 +113,18 @@ export function BookingForm({ services }: { services: Service[] }) {
           <option value="" disabled>
             Selecciona un servicio
           </option>
-          {services.map((service) => (
-            <option key={service.id} value={service.id}>
-              {service.name} — desde {formatCRC(service.basePrice)} ({service.standardDurationMin} min)
-            </option>
+          {groupServicesByFamily(services).map((group) => (
+            <optgroup key={group.label} label={group.label}>
+              {group.services.map((service) => (
+                <option key={service.id} value={service.id}>
+                  {serviceMatchesSize(service.name, sizeCategory) ? '✓ ' : ''}
+                  {service.name} — desde {formatCRC(service.basePrice)} ({service.standardDurationMin} min)
+                </option>
+              ))}
+            </optgroup>
           ))}
         </select>
+        {sizeCategory && <p className="text-xs text-slate-400">✓ = coincide con el tamaño que indicaste arriba.</p>}
         {selectedService?.imageUrl && (
           // eslint-disable-next-line @next/next/no-img-element
           <img

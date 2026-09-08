@@ -11,6 +11,7 @@ import {
   type AdminBookingState,
 } from '@/modules/agenda/adminActions'
 import { formatCRC } from '@/lib/currency'
+import { groupServicesByFamily, serviceMatchesSize } from '@/modules/shared/serviceFamily'
 
 interface ServiceOption {
   id: string
@@ -265,12 +266,18 @@ export function AdminAppointmentFormModal({ services, groomers }: { services: Se
               <option value="" disabled>
                 Selecciona un servicio
               </option>
-              {services.map((service) => (
-                <option key={service.id} value={service.id}>
-                  {service.name} — {formatCRC(service.basePrice)} ({service.standardDurationMin} min)
-                </option>
+              {groupServicesByFamily(services).map((group) => (
+                <optgroup key={group.label} label={group.label}>
+                  {group.services.map((service) => (
+                    <option key={service.id} value={service.id}>
+                      {serviceMatchesSize(service.name, sizeCategory) ? '✓ ' : ''}
+                      {service.name} — {formatCRC(service.basePrice)} ({service.standardDurationMin} min)
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
+            {sizeCategory && <p className="mt-1 text-xs text-slate-400">✓ = talla registrada de la mascota ({sizeCategory}).</p>}
           </label>
 
           {groomers.length > 0 && (
