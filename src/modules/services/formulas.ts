@@ -1,10 +1,10 @@
 import { prisma } from '@/lib/prisma'
 
-/** Fórmulas cosméticas de un servicio — alimentan Mise en Place (proyección de ml) y el cierre de inventario. */
+/** Fórmulas cosméticas de un servicio — alimentan Mise en Place (proyección) y el cierre de inventario. */
 export async function listFormulasForService(serviceId: string) {
   return prisma.formula.findMany({
     where: { serviceId },
-    include: { product: { select: { name: true } } },
+    include: { product: { select: { name: true, unitOfMeasure: { select: { abbreviation: true } } } } },
     orderBy: { name: 'asc' },
   })
 }
@@ -14,7 +14,11 @@ export interface FormulaInput {
   productId: string
   dilutionRatio?: string
   instructions?: string
-  baseMlPerUse: number
+  qtyXS: number
+  qtyS: number
+  qtyM: number
+  qtyL: number
+  qtyXL: number
 }
 
 export async function createFormula(serviceId: string, input: FormulaInput) {

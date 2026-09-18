@@ -155,7 +155,11 @@ async function main() {
         productId: product.id,
         name: formula.name,
         dilutionRatio: formula.dilutionRatio,
-        baseMlPerUse: formula.baseMlPerUse,
+        qtyXS: formula.baseMlPerUse * 0.5,
+        qtyS: formula.baseMlPerUse * 0.75,
+        qtyM: formula.baseMlPerUse,
+        qtyL: formula.baseMlPerUse * 1.5,
+        qtyXL: formula.baseMlPerUse * 2,
       },
     })
     formulasCreated++

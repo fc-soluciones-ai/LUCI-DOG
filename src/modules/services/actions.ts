@@ -93,13 +93,16 @@ function str(formData: FormData, key: string): string | undefined {
 export async function createFormulaAction(serviceId: string, formData: FormData) {
   const name = String(formData.get('name') ?? '').trim()
   const productId = String(formData.get('productId') ?? '')
-  const baseMlPerUse = num(formData, 'baseMlPerUse') ?? 30
   if (!name || !productId) return
 
   await createFormula(serviceId, {
     name,
     productId,
-    baseMlPerUse,
+    qtyXS: num(formData, 'qtyXS') ?? 0,
+    qtyS: num(formData, 'qtyS') ?? 0,
+    qtyM: num(formData, 'qtyM') ?? 0,
+    qtyL: num(formData, 'qtyL') ?? 0,
+    qtyXL: num(formData, 'qtyXL') ?? 0,
     dilutionRatio: str(formData, 'dilutionRatio'),
     instructions: str(formData, 'instructions'),
   })
@@ -109,13 +112,16 @@ export async function createFormulaAction(serviceId: string, formData: FormData)
 export async function updateFormulaAction(serviceId: string, formulaId: string, formData: FormData) {
   const name = String(formData.get('name') ?? '').trim()
   const productId = String(formData.get('productId') ?? '')
-  const baseMlPerUse = num(formData, 'baseMlPerUse') ?? 30
   if (!name || !productId) return
 
   await updateFormula(formulaId, {
     name,
     productId,
-    baseMlPerUse,
+    qtyXS: num(formData, 'qtyXS') ?? 0,
+    qtyS: num(formData, 'qtyS') ?? 0,
+    qtyM: num(formData, 'qtyM') ?? 0,
+    qtyL: num(formData, 'qtyL') ?? 0,
+    qtyXL: num(formData, 'qtyXL') ?? 0,
     dilutionRatio: str(formData, 'dilutionRatio'),
     instructions: str(formData, 'instructions'),
   })

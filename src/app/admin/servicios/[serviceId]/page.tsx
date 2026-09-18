@@ -29,6 +29,14 @@ const STAGE_LABEL: Record<string, string> = {
 
 const STAGE_OPTIONS = Object.keys(STAGE_LABEL)
 
+const SIZE_FIELDS = [
+  { key: 'qtyXS', label: 'XS' },
+  { key: 'qtyS', label: 'S' },
+  { key: 'qtyM', label: 'M' },
+  { key: 'qtyL', label: 'L' },
+  { key: 'qtyXL', label: 'XL' },
+] as const
+
 export default async function ServiceDetailPage({ params }: { params: Promise<{ serviceId: string }> }) {
   const { serviceId } = await params
   const service = await prisma.service.findUnique({
@@ -65,99 +73,125 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
       <section>
         <h2 className="text-lg font-medium text-slate-900">Fórmulas cosméticas</h2>
         <p className="mt-1 text-sm text-slate-500">
-          Producto y ml estimados por aplicación (talla M) — Mise en Place escala esto por la talla real de cada
-          mascota.
+          El "machote" de gasto de este servicio: por cada producto, cuánto se usa exactamente en cada talla — ya con
+          tu propia dilución, conteo de pañoletas, algodón, etc. calculado. Mise en Place y el cierre de inventario
+          usan el número de la talla real de la mascota, tal cual lo escribas aquí.
         </p>
 
         <div className="mt-3 divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
           {formulas.length === 0 && <p className="p-4 text-sm text-slate-500">Sin fórmulas registradas todavía.</p>}
-          {formulas.map((formula) => (
-            <div key={formula.id} className="flex items-center justify-between gap-3 p-4">
-              <div>
-                <p className="font-medium text-slate-900">
-                  {formula.name} {formula.dilutionRatio ? <span className="text-slate-400">({formula.dilutionRatio})</span> : null}
-                </p>
-                <p className="text-sm text-slate-500">
-                  {formula.product.name} · {formula.baseMlPerUse.toString()} ml (talla M)
-                </p>
+          {formulas.map((formula) => {
+            const unit = formula.product.unitOfMeasure?.abbreviation ?? ''
+            return (
+              <div key={formula.id} className="flex items-center justify-between gap-3 p-4">
+                <div>
+                  <p className="font-medium text-slate-900">
+                    {formula.name} {formula.dilutionRatio ? <span className="text-slate-400">({formula.dilutionRatio})</span> : null}
+                  </p>
+                  <p className="text-sm text-slate-500">{formula.product.name}</p>
+                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-500">
+                    {SIZE_FIELDS.map(({ key, label }) => (
+                      <span key={key}>
+                        <span className="font-medium text-slate-700">{label}</span> {formula[key].toString()} {unit}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                      formula.active ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-500'
+                    }`}
+                  >
+                    {formula.active ? 'Activa' : 'Inactiva'}
+                  </span>
+                  <DataTableActions
+                    editLabel="Editar"
+                    editTitle={`Editar fórmula — ${formula.name}`}
+                    editAction={updateFormulaAction.bind(null, serviceId, formula.id)}
+                    editFields={
+                      <>
+                        <label className="text-sm text-slate-700">
+                          Nombre
+                          <input name="name" required defaultValue={formula.name} className="input mt-1 w-full" />
+                        </label>
+                        <label className="text-sm text-slate-700">
+                          Producto
+                          <select name="productId" required defaultValue={formula.productId} className="input mt-1 w-full">
+                            {products.map((product) => (
+                              <option key={product.id} value={product.id}>
+                                {product.name}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="text-sm text-slate-700">
+                          Dilución (opcional, solo referencia)
+                          <input name="dilutionRatio" defaultValue={formula.dilutionRatio ?? ''} placeholder="1:8" className="input mt-1 w-full" />
+                        </label>
+                        <div>
+                          <p className="text-sm text-slate-700">Cantidad exacta por talla ({unit || 'unidad'})</p>
+                          <div className="mt-1 grid grid-cols-5 gap-2">
+                            {SIZE_FIELDS.map(({ key, label }) => (
+                              <label key={key} className="text-xs text-slate-500">
+                                {label}
+                                <input
+                                  name={key}
+                                  type="number"
+                                  step="0.01"
+                                  required
+                                  defaultValue={formula[key].toString()}
+                                  className="input mt-1 w-full"
+                                />
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                        <label className="text-sm text-slate-700">
+                          Instrucciones (opcional)
+                          <textarea name="instructions" defaultValue={formula.instructions ?? ''} rows={2} className="input mt-1 w-full" />
+                        </label>
+                      </>
+                    }
+                    onDelete={async () => {
+                      'use server'
+                      await deleteFormulaAction(serviceId, formula.id)
+                    }}
+                    deleteLabel="Desactivar"
+                    deleteConfirmText={`¿Desactivar "${formula.name}"? Dejará de proyectarse en Mise en Place, pero se conserva su historial de uso.`}
+                  />
+                </div>
               </div>
-              <div className="flex items-center gap-3">
-                <span
-                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                    formula.active ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-500'
-                  }`}
-                >
-                  {formula.active ? 'Activa' : 'Inactiva'}
-                </span>
-                <DataTableActions
-                  editLabel="Editar"
-                  editTitle={`Editar fórmula — ${formula.name}`}
-                  editAction={updateFormulaAction.bind(null, serviceId, formula.id)}
-                  editFields={
-                    <>
-                      <label className="text-sm text-slate-700">
-                        Nombre
-                        <input name="name" required defaultValue={formula.name} className="input mt-1 w-full" />
-                      </label>
-                      <label className="text-sm text-slate-700">
-                        Producto
-                        <select name="productId" required defaultValue={formula.productId} className="input mt-1 w-full">
-                          {products.map((product) => (
-                            <option key={product.id} value={product.id}>
-                              {product.name}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label className="text-sm text-slate-700">
-                        Dilución (opcional)
-                        <input name="dilutionRatio" defaultValue={formula.dilutionRatio ?? ''} placeholder="1:8" className="input mt-1 w-full" />
-                      </label>
-                      <label className="text-sm text-slate-700">
-                        ml por aplicación (talla M)
-                        <input
-                          name="baseMlPerUse"
-                          type="number"
-                          step="0.01"
-                          required
-                          defaultValue={formula.baseMlPerUse.toString()}
-                          className="input mt-1 w-full"
-                        />
-                      </label>
-                      <label className="text-sm text-slate-700">
-                        Instrucciones (opcional)
-                        <textarea name="instructions" defaultValue={formula.instructions ?? ''} rows={2} className="input mt-1 w-full" />
-                      </label>
-                    </>
-                  }
-                  onDelete={async () => {
-                    'use server'
-                    await deleteFormulaAction(serviceId, formula.id)
-                  }}
-                  deleteLabel="Desactivar"
-                  deleteConfirmText={`¿Desactivar "${formula.name}"? Dejará de proyectarse en Mise en Place, pero se conserva su historial de uso.`}
-                />
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
 
         <details className="mt-3">
           <summary className="cursor-pointer text-sm font-medium text-slate-700">+ Nueva fórmula</summary>
           <form action={createFormulaAction.bind(null, serviceId)} className="mt-3 grid max-w-lg gap-2 sm:grid-cols-2">
             <input name="name" required placeholder='Nombre (ej. "Shampoo hipoalergénico")' className="input sm:col-span-2" />
-            <select name="productId" required defaultValue="" className="input">
+            <select name="productId" required defaultValue="" className="input sm:col-span-2">
               <option value="" disabled>
                 Producto
               </option>
               {products.map((product) => (
                 <option key={product.id} value={product.id}>
-                  {product.name}
+                  {product.name} {product.unitOfMeasure ? `(${product.unitOfMeasure.abbreviation})` : ''}
                 </option>
               ))}
             </select>
-            <input name="dilutionRatio" placeholder="Dilución (ej. 1:8, opcional)" className="input" />
-            <input name="baseMlPerUse" type="number" step="0.01" required placeholder="ml por aplicación (talla M)" className="input" />
+            <input name="dilutionRatio" placeholder="Dilución (ej. 1:8, opcional, solo referencia)" className="input sm:col-span-2" />
+            <div className="sm:col-span-2">
+              <p className="text-xs font-medium text-slate-700">Cantidad exacta por talla</p>
+              <div className="mt-1 grid grid-cols-5 gap-2">
+                {SIZE_FIELDS.map(({ key, label }) => (
+                  <label key={key} className="text-xs text-slate-500">
+                    {label}
+                    <input name={key} type="number" step="0.01" required defaultValue={0} className="input mt-1 w-full" />
+                  </label>
+                ))}
+              </div>
+            </div>
             <textarea name="instructions" placeholder="Instrucciones (opcional)" rows={2} className="input sm:col-span-2" />
             <button type="submit" className="col-span-full w-fit rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white">
               Crear fórmula

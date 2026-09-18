@@ -388,17 +388,21 @@ model NotificationLog {
 // MÓDULO 3: MISE EN PLACE AI (fórmulas + preparación diaria)
 // ----------------------------------------------------------------------------
 
-// Receta cosmética: producto + dilución
+// Receta cosmética: producto + cantidad exacta por talla (el admin la define
+// a mano — ya con su propia dilución, conteo de pañoletas/algodón, etc.
+// calculado — así el sistema nunca tiene que adivinar una conversión).
 model Formula {
   id            String   @id @default(cuid())
   serviceId     String?
   productId     String
   name          String // ej. "Shampoo hipoalergénico 1:8"
-  dilutionRatio String? // "1:8"
+  dilutionRatio String? // "1:8" — nota de referencia para el staff, no se usa en cálculos
   instructions  String?
-  // ml estimados por aplicación en una mascota talla M — el planner de
-  // mise en place lo escala por tamaño (Módulo 3).
-  baseMlPerUse  Decimal  @default(30) @db.Decimal(8, 2)
+  qtyXS         Decimal  @default(0) @db.Decimal(8, 2)
+  qtyS          Decimal  @default(0) @db.Decimal(8, 2)
+  qtyM          Decimal  @default(0) @db.Decimal(8, 2)
+  qtyL          Decimal  @default(0) @db.Decimal(8, 2)
+  qtyXL         Decimal  @default(0) @db.Decimal(8, 2)
   active        Boolean  @default(true)
 
   service Service? @relation(fields: [serviceId], references: [id])
