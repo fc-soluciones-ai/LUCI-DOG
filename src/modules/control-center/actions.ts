@@ -11,6 +11,7 @@ import {
   deleteSubProcess,
   reorderSubProcesses,
   setPipelineActive,
+  updatePipeline,
   updateProcessStepDuration,
 } from './pipelines'
 import {
@@ -66,6 +67,15 @@ export async function createPipelineAction(formData: FormData) {
 
 export async function setPipelineActiveAction(pipelineId: string, active: boolean) {
   await setPipelineActive(pipelineId, active)
+  revalidatePath('/admin/procesos')
+}
+
+export async function updatePipelineAction(pipelineId: string, formData: FormData) {
+  await updatePipeline(pipelineId, {
+    name: String(formData.get('name')),
+    description: (formData.get('description') as string) || undefined,
+    serviceId: (formData.get('serviceId') as string) || undefined,
+  })
   revalidatePath('/admin/procesos')
 }
 

@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 export default async function DashboardPage() {
   const board = await getTodayBoard()
   const groomerOptions = await prisma.staff.findMany({
-    where: { role: Role.GROOMER, active: true },
+    where: { OR: [{ role: Role.GROOMER }, { isGroomer: true }], active: true },
     select: { id: true, fullName: true },
   })
 

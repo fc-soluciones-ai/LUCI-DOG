@@ -2,28 +2,25 @@ import { AppointmentSource, AppointmentStatus } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { assertNoPetOverlap, assertSlotAvailable, computeDurationMinutes } from './availability'
 import { scheduleAppointmentNotifications } from './notifications'
+import { zonedDayRange } from './timezone'
 import { ValidationError } from './errors'
 
 export interface AdminAppointmentFilters {
+  date: Date // día a mostrar (vista de calendario por día — ver zonedDayRange)
   status?: AppointmentStatus
-  dateFrom?: Date
-  dateTo?: Date
   workstationId?: string
 }
 
-/** Listado global de citas para recepción — con filtros por estado, rango de fecha y estación asignada. */
-export async function listAppointmentsForAdmin(filters: AdminAppointmentFilters = {}) {
+/** Citas de un solo día para la vista de calendario de recepción — con filtros por estado y estación asignada. */
+export async function listAppointmentsForAdmin(filters: AdminAppointmentFilters) {
+  const { start, end } = zonedDayRange(filters.date)
   return prisma.appointment.findMany({
     where: {
       status: filters.status,
-      scheduledStart: {
-        gte: filters.dateFrom,
-        lt: filters.dateTo,
-      },
+      scheduledStart: { gte: start, lt: end },
       appointmentSteps: filters.workstationId ? { some: { workstationId: filters.workstationId } } : undefined,
     },
     orderBy: { scheduledStart: 'asc' },
-    take: 200,
     include: {
       pet: { select: { name: true, breed: true, sizeCategory: true } },
       tutor: { select: { fullName: true, phoneWhatsApp: true } },

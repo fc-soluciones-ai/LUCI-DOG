@@ -1,9 +1,12 @@
 import { AppointmentStatus, Role } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { listAppointmentsForAdmin } from '@/modules/agenda/adminAppointments'
-import { formatInBusinessTz } from '@/modules/agenda/timezone'
+import { formatInBusinessTz, parseZonedDateTime, zonedDayOfWeek, zonedDayStart, zonedMinutesSinceMidnight } from '@/modules/agenda/timezone'
+import { getBusinessHourForDay } from '@/modules/config/businessHours'
 import { AdminAppointmentFormModal } from '@/components/admin/AdminAppointmentFormModal'
 import { AppointmentFilters } from '@/components/admin/AppointmentFilters'
+import { AppointmentDayNav } from '@/components/admin/AppointmentDayNav'
+import { AppointmentDayTimeline, type TimelineAppointment } from '@/components/admin/AppointmentDayTimeline'
 
 export const dynamic = 'force-dynamic'
 
@@ -33,8 +36,7 @@ const STATUS_COLOR: Record<string, string> = {
 
 interface SearchParams {
   status?: string
-  dateFrom?: string
-  dateTo?: string
+  date?: string
   workstationId?: string
 }
 
@@ -42,11 +44,22 @@ export default async function AdminAppointmentsPage({ searchParams }: { searchPa
   const params = await searchParams
   const status = params.status && params.status in STATUS_LABEL ? (params.status as AppointmentStatus) : undefined
 
+  const forDate = params.date ? parseZonedDateTime(`${params.date}T00:00:00`) : zonedDayStart(new Date())
+  const dateStr = formatInBusinessTz(forDate, 'yyyy-MM-dd')
+  const todayDateStr = formatInBusinessTz(new Date(), 'yyyy-MM-dd')
+  const dayLabelRaw = formatInBusinessTz(forDate, "EEEE d 'de' MMMM 'de' yyyy")
+  const dayLabel = dayLabelRaw.charAt(0).toUpperCase() + dayLabelRaw.slice(1)
+  const prevDateStr = formatInBusinessTz(new Date(forDate.getTime() - 24 * 60 * 60 * 1000), 'yyyy-MM-dd')
+  const nextDateStr = formatInBusinessTz(new Date(forDate.getTime() + 24 * 60 * 60 * 1000), 'yyyy-MM-dd')
+
+  const businessHour = await getBusinessHourForDay(zonedDayOfWeek(forDate))
+  const [openHour] = businessHour.openTime.split(':').map(Number)
+  const [closeHour] = businessHour.closeTime.split(':').map(Number)
+
   const [appointments, services, groomers, workstations] = await Promise.all([
     listAppointmentsForAdmin({
+      date: forDate,
       status,
-      dateFrom: params.dateFrom ? new Date(`${params.dateFrom}T00:00:00`) : undefined,
-      dateTo: params.dateTo ? new Date(`${params.dateTo}T23:59:59`) : undefined,
       workstationId: params.workstationId || undefined,
     }),
     prisma.service.findMany({
@@ -54,53 +67,64 @@ export default async function AdminAppointmentsPage({ searchParams }: { searchPa
       select: { id: true, name: true, basePrice: true, standardDurationMin: true },
       orderBy: { name: 'asc' },
     }),
-    prisma.staff.findMany({ where: { role: Role.GROOMER, active: true }, select: { id: true, fullName: true }, orderBy: { fullName: 'asc' } }),
+    prisma.staff.findMany({
+      where: { OR: [{ role: Role.GROOMER }, { isGroomer: true }], active: true },
+      select: { id: true, fullName: true },
+      orderBy: { fullName: 'asc' },
+    }),
     prisma.workstation.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { sortOrder: 'asc' } }),
   ])
+
+  const timelineAppointments: TimelineAppointment[] = appointments.map((appointment) => {
+    const startMin = zonedMinutesSinceMidnight(appointment.scheduledStart)
+    const endMinRaw = zonedMinutesSinceMidnight(appointment.scheduledEnd)
+    const endMin = endMinRaw > startMin ? endMinRaw : startMin + 30 // salvaguarda si cruza medianoche
+
+    const chips: string[] = []
+    if (appointment.groomer) chips.push(appointment.groomer.fullName)
+    if (appointment.appointmentSteps[0]?.workstation) chips.push(appointment.appointmentSteps[0].workstation.name)
+    chips.push(STATUS_LABEL[appointment.status] ?? appointment.status)
+
+    return {
+      id: appointment.id,
+      startMin,
+      endMin,
+      title: `${appointment.pet.name} — ${appointment.service.name}`,
+      subtitle: `${appointment.tutor.fullName} · ${appointment.tutor.phoneWhatsApp}`,
+      timeLabel: formatInBusinessTz(appointment.scheduledStart, 'h:mm a'),
+      chips,
+      statusColorClass: STATUS_COLOR[appointment.status] ?? 'bg-slate-100 text-slate-500',
+    }
+  })
 
   return (
     <div>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-slate-900">Citas / Agenda</h1>
-          <p className="text-slate-600">Todas las citas registradas — agenda una nueva por teléfono o WhatsApp.</p>
+          <p className="text-slate-600">Calendario del día — agenda una nueva por teléfono o WhatsApp.</p>
         </div>
         <AdminAppointmentFormModal
           services={services.map((s) => ({ ...s, basePrice: Number(s.basePrice) }))}
           groomers={groomers}
+          defaultDate={dateStr}
         />
       </div>
+
+      <AppointmentDayNav label={dayLabel} dateStr={dateStr} prevDateStr={prevDateStr} nextDateStr={nextDateStr} todayDateStr={todayDateStr} />
 
       <AppointmentFilters
         statusOptions={Object.entries(STATUS_LABEL).map(([value, label]) => ({ value, label }))}
         workstations={workstations}
       />
 
-      <div className="mt-6 divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
-        {appointments.length === 0 && <p className="p-4 text-sm text-slate-500">Sin citas para estos filtros.</p>}
-        {appointments.map((appointment) => (
-          <div key={appointment.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
-            <div className="min-w-0">
-              <p className="font-medium text-slate-900">
-                {appointment.pet.name} — {appointment.service.name}
-              </p>
-              <p className="text-sm text-slate-500">
-                {appointment.tutor.fullName} · {appointment.tutor.phoneWhatsApp}
-              </p>
-              <p className="text-sm text-slate-500">{formatInBusinessTz(appointment.scheduledStart, "d 'de' MMMM, h:mm a")}</p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-              {appointment.groomer && <span className="rounded-full bg-slate-100 px-2.5 py-1">Groomer: {appointment.groomer.fullName}</span>}
-              {appointment.appointmentSteps[0]?.workstation && (
-                <span className="rounded-full bg-slate-100 px-2.5 py-1">{appointment.appointmentSteps[0].workstation.name}</span>
-              )}
-              <span className={`rounded-full px-2.5 py-1 font-medium ${STATUS_COLOR[appointment.status]}`}>
-                {STATUS_LABEL[appointment.status] ?? appointment.status}
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
+      {!businessHour.isOpen && (
+        <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          Este día está marcado como cerrado en Configuración → Horario de negocio.
+        </p>
+      )}
+
+      <AppointmentDayTimeline openHour={openHour} closeHour={closeHour} appointments={timelineAppointments} />
     </div>
   )
 }

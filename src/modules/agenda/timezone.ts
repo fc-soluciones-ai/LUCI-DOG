@@ -33,6 +33,12 @@ export function zonedDayOfWeek(date: Date): number {
   return toZonedTime(date, BUSINESS_TIMEZONE).getDay()
 }
 
+/** Minutos transcurridos desde la medianoche de `date` en hora de Costa Rica (para ubicar bloques en una vista de calendario). */
+export function zonedMinutesSinceMidnight(date: Date): number {
+  const zoned = toZonedTime(date, BUSINESS_TIMEZONE)
+  return zoned.getHours() * 60 + zoned.getMinutes()
+}
+
 /**
  * Interpreta un string sin offset ("2026-09-06T10:00", tal como lo entrega
  * un <input type="datetime-local">) como hora de pared de Costa Rica y

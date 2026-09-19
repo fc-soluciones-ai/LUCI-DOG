@@ -14,8 +14,19 @@ export async function listPipelines() {
   })
 }
 
-export async function listServicesWithoutPipeline() {
-  return prisma.service.findMany({ where: { pipeline: null, active: true }, select: { id: true, name: true } })
+/**
+ * Todos los servicios activos con el proceso que ya tienen vinculado (si
+ * alguno) — para construir, sin N+1, el selector "servicio vinculado" de
+ * cada proceso: sus opciones son los servicios sin proceso más el que ya
+ * tiene este mismo proceso (serviceId es único por proceso, así que uno
+ * tomado por OTRO proceso no debe aparecer como opción).
+ */
+export async function listServicesForPipelineLinking() {
+  return prisma.service.findMany({
+    where: { active: true },
+    select: { id: true, name: true, pipeline: { select: { id: true } } },
+    orderBy: { name: 'asc' },
+  })
 }
 
 export interface CreatePipelineInput {
@@ -26,6 +37,20 @@ export interface CreatePipelineInput {
 
 export async function createPipeline(input: CreatePipelineInput) {
   return prisma.servicePipeline.create({ data: input })
+}
+
+export interface UpdatePipelineInput {
+  name: string
+  description?: string
+  serviceId?: string
+}
+
+/** Edita nombre, descripción y el servicio vinculado — antes solo se podía fijar el vínculo al crear el proceso. */
+export async function updatePipeline(pipelineId: string, input: UpdatePipelineInput) {
+  return prisma.servicePipeline.update({
+    where: { id: pipelineId },
+    data: { name: input.name, description: input.description || null, serviceId: input.serviceId || null },
+  })
 }
 
 export async function setPipelineActive(pipelineId: string, active: boolean) {

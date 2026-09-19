@@ -39,7 +39,7 @@ export async function getTodayBoard() {
     },
   })
 
-  const groomerStaff = await prisma.staff.findMany({ where: { role: Role.GROOMER, active: true } })
+  const groomerStaff = await prisma.staff.findMany({ where: { OR: [{ role: Role.GROOMER }, { isGroomer: true }], active: true } })
   const workstations = await prisma.workstation.findMany({ where: { active: true }, orderBy: { sortOrder: 'asc' } })
 
   const pendingDelayNotifications = await prisma.notificationLog.findMany({

@@ -253,11 +253,12 @@ model ClinicalRecord {
 // ----------------------------------------------------------------------------
 
 model Staff {
-  id       String  @id @default(cuid())
-  fullName String
-  role     Role    @default(GROOMER)
-  phone    String?
-  active   Boolean @default(true)
+  id        String  @id @default(cuid())
+  fullName  String
+  role      Role    @default(GROOMER)
+  isGroomer Boolean @default(false) // además de su rol principal (ej. un ADMIN que también hace grooming) — se suma a role=GROOMER en toda lista de "groomer asignable"
+  phone     String?
+  active    Boolean @default(true)
 
   appointments Appointment[]
   timeLogs     TimeLog[]

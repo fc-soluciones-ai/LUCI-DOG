@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { listPipelines, listServicesWithoutPipeline } from '@/modules/control-center/pipelines'
+import { listPipelines, listServicesForPipelineLinking } from '@/modules/control-center/pipelines'
 import {
   createPipelineAction,
   createProcessStepAction,
@@ -8,10 +8,12 @@ import {
   deleteSubProcessAction,
   reorderSubProcessesAction,
   setPipelineActiveAction,
+  updatePipelineAction,
   updateProcessStepDurationAction,
 } from '@/modules/control-center/actions'
 import { SubProcessList } from '@/components/admin/SubProcessList'
 import { InlineDurationEditor } from '@/components/admin/InlineDurationEditor'
+import { DataTableActions } from '@/components/admin/DataTableActions'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,7 +29,8 @@ const STAGE_LABEL: Record<string, string> = {
 }
 
 export default async function ProcesosAdminPage() {
-  const [pipelines, servicesWithoutPipeline] = await Promise.all([listPipelines(), listServicesWithoutPipeline()])
+  const [pipelines, allServices] = await Promise.all([listPipelines(), listServicesForPipelineLinking()])
+  const servicesWithoutPipeline = allServices.filter((service) => !service.pipeline)
 
   return (
     <div className="space-y-10">
@@ -65,16 +68,51 @@ export default async function ProcesosAdminPage() {
                   {pipeline.description ? ` · ${pipeline.description}` : ''}
                 </p>
               </div>
-              <form action={setPipelineActiveAction.bind(null, pipeline.id, !pipeline.active)}>
-                <button
-                  type="submit"
-                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                    pipeline.active ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-500'
-                  }`}
-                >
-                  {pipeline.active ? 'Activo' : 'Inactivo'}
-                </button>
-              </form>
+              <div className="flex items-center gap-3">
+                <form action={setPipelineActiveAction.bind(null, pipeline.id, !pipeline.active)}>
+                  <button
+                    type="submit"
+                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                      pipeline.active ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-500'
+                    }`}
+                  >
+                    {pipeline.active ? 'Activo' : 'Inactivo'}
+                  </button>
+                </form>
+                <DataTableActions
+                  editLabel="Editar"
+                  editTitle={`Editar proceso — ${pipeline.name}`}
+                  editAction={updatePipelineAction.bind(null, pipeline.id)}
+                  editFields={
+                    <>
+                      <label className="text-sm text-slate-700">
+                        Nombre
+                        <input name="name" required defaultValue={pipeline.name} className="input mt-1 w-full" />
+                      </label>
+                      <label className="text-sm text-slate-700">
+                        Servicio vinculado
+                        <select name="serviceId" defaultValue={pipeline.service?.id ?? ''} className="input mt-1 w-full">
+                          <option value="">Sin vincular a servicio</option>
+                          {allServices
+                            .filter((service) => !service.pipeline || service.pipeline.id === pipeline.id)
+                            .map((service) => (
+                              <option key={service.id} value={service.id}>
+                                {service.name}
+                              </option>
+                            ))}
+                        </select>
+                        <p className="mt-1 text-xs text-slate-400">
+                          Solo aparecen servicios sin proceso vinculado (y el actual de este proceso).
+                        </p>
+                      </label>
+                      <label className="text-sm text-slate-700">
+                        Descripción
+                        <input name="description" defaultValue={pipeline.description ?? ''} className="input mt-1 w-full" />
+                      </label>
+                    </>
+                  }
+                />
+              </div>
             </div>
 
             <div className="mt-4 space-y-3">

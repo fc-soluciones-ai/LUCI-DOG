@@ -19,6 +19,11 @@ export function CreateUserForm() {
       </select>
 
       <label className="col-span-full flex items-center gap-2 text-sm text-slate-700">
+        <input type="checkbox" name="isGroomer" />
+        También hace grooming (aparece para asignar en citas, piso y tiempos, además de su rol)
+      </label>
+
+      <label className="col-span-full flex items-center gap-2 text-sm text-slate-700">
         <input
           type="checkbox"
           name="sendInvite"

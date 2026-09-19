@@ -45,7 +45,15 @@ function todayIso() {
 }
 
 /** Alta de cita telefónica/manual desde recepción — mismo motor de disponibilidad que /book y /client/citas. */
-export function AdminAppointmentFormModal({ services, groomers }: { services: ServiceOption[]; groomers: GroomerOption[] }) {
+export function AdminAppointmentFormModal({
+  services,
+  groomers,
+  defaultDate,
+}: {
+  services: ServiceOption[]
+  groomers: GroomerOption[]
+  defaultDate?: string
+}) {
   const [open, setOpen] = useState(false)
   const [state, formAction, pending] = useActionState(createAppointmentByAdminAction, initialState)
 
@@ -60,7 +68,7 @@ export function AdminAppointmentFormModal({ services, groomers }: { services: Se
   const [newPetSize, setNewPetSize] = useState('')
 
   const [serviceId, setServiceId] = useState('')
-  const [date, setDate] = useState(todayIso())
+  const [date, setDate] = useState(defaultDate ?? todayIso())
   const [slots, setSlots] = useState<{ start: string; available: boolean }[]>([])
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
@@ -75,7 +83,7 @@ export function AdminAppointmentFormModal({ services, groomers }: { services: Se
     setNewPetMode(false)
     setNewPetSize('')
     setServiceId('')
-    setDate(todayIso())
+    setDate(defaultDate ?? todayIso())
     setSlots([])
     setSelectedSlot(null)
   }

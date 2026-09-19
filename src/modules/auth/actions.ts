@@ -65,6 +65,7 @@ export async function createStaffUserAction(
   const fullName = String(formData.get('fullName') ?? '').trim()
   const email = String(formData.get('email') ?? '').trim()
   const role = formData.get('role') === 'ADMIN' ? 'ADMIN' : 'GROOMER'
+  const isGroomer = formData.get('isGroomer') === 'on'
   const sendInvite = formData.get('sendInvite') === 'on'
   const manualPassword = String(formData.get('manualPassword') ?? '').trim()
 
@@ -73,7 +74,7 @@ export async function createStaffUserAction(
   }
 
   try {
-    const result = await createStaffUser({ fullName, email, role, sendInvite, manualPassword: manualPassword || undefined })
+    const result = await createStaffUser({ fullName, email, role, isGroomer, sendInvite, manualPassword: manualPassword || undefined })
     revalidatePath('/admin/usuarios')
 
     if (result.invited) {
@@ -123,9 +124,10 @@ export async function updateProfileAction(profileId: string, formData: FormData)
   const fullName = String(formData.get('fullName') ?? '').trim()
   const email = String(formData.get('email') ?? '').trim()
   const role = formData.get('role') === 'ADMIN' ? 'ADMIN' : 'GROOMER'
+  const isGroomer = formData.get('isGroomer') === 'on'
   if (!fullName || !email) return
 
-  await updateProfile(profileId, { fullName, email, role })
+  await updateProfile(profileId, { fullName, email, role, isGroomer })
   revalidatePath('/admin/usuarios')
 }
 

@@ -130,6 +130,10 @@ export default async function UsuariosPage({ searchParams }: { searchParams: Pro
                             <option value="GROOMER">Groomer</option>
                           </select>
                         </label>
+                        <label className="flex items-center gap-2 text-sm text-slate-700">
+                          <input type="checkbox" name="isGroomer" defaultChecked={profile.staff?.isGroomer ?? false} />
+                          También hace grooming (aparece para asignar en citas, piso y tiempos, además de su rol)
+                        </label>
                       </>
                     }
                     deleteLabel="Eliminar cuenta"

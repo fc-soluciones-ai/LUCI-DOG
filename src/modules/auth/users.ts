@@ -25,6 +25,7 @@ export interface CreateStaffUserInput {
   fullName: string
   email: string
   role: 'ADMIN' | 'GROOMER'
+  isGroomer?: boolean // el admin/dueña también hace grooming — aparece como groomer asignable además de su rol principal
   sendInvite?: boolean
   manualPassword?: string
 }
@@ -66,7 +67,7 @@ export async function createStaffUser(input: CreateStaffUserInput) {
     userId = data.user.id
   }
 
-  const staff = await prisma.staff.create({ data: { fullName: input.fullName, role } })
+  const staff = await prisma.staff.create({ data: { fullName: input.fullName, role, isGroomer: input.isGroomer ?? false } })
 
   await prisma.profile.create({
     data: {
@@ -180,6 +181,7 @@ export interface UpdateProfileInput {
   fullName: string
   email: string
   role: 'ADMIN' | 'GROOMER'
+  isGroomer?: boolean
 }
 
 /**
@@ -199,7 +201,11 @@ export async function updateProfile(profileId: string, input: UpdateProfileInput
   if (profile.staffId) {
     await prisma.staff.update({
       where: { id: profile.staffId },
-      data: { fullName: input.fullName, role: input.role === 'ADMIN' ? Role.ADMIN : Role.GROOMER },
+      data: {
+        fullName: input.fullName,
+        role: input.role === 'ADMIN' ? Role.ADMIN : Role.GROOMER,
+        isGroomer: input.isGroomer ?? false,
+      },
     })
   }
 

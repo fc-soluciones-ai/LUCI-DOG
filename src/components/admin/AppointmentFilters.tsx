@@ -24,7 +24,14 @@ export function AppointmentFilters({ statusOptions, workstations }: Props) {
     router.push(params.toString() ? `${pathname}?${params.toString()}` : pathname)
   }
 
-  const hasFilters = searchParams.toString().length > 0
+  const hasFilters = Boolean(searchParams.get('status') || searchParams.get('workstationId'))
+
+  function clearFilters() {
+    const params = new URLSearchParams(searchParams.toString())
+    params.delete('status')
+    params.delete('workstationId')
+    router.push(params.toString() ? `${pathname}?${params.toString()}` : pathname)
+  }
 
   return (
     <div className="mt-6 flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-4">
@@ -44,24 +51,6 @@ export function AppointmentFilters({ statusOptions, workstations }: Props) {
         </select>
       </label>
       <label className="text-sm text-slate-700">
-        Desde
-        <input
-          type="date"
-          value={searchParams.get('dateFrom') ?? ''}
-          onChange={(event) => updateParam('dateFrom', event.target.value)}
-          className="input mt-1"
-        />
-      </label>
-      <label className="text-sm text-slate-700">
-        Hasta
-        <input
-          type="date"
-          value={searchParams.get('dateTo') ?? ''}
-          onChange={(event) => updateParam('dateTo', event.target.value)}
-          className="input mt-1"
-        />
-      </label>
-      <label className="text-sm text-slate-700">
         Estación
         <select
           value={searchParams.get('workstationId') ?? ''}
@@ -77,7 +66,7 @@ export function AppointmentFilters({ statusOptions, workstations }: Props) {
         </select>
       </label>
       {hasFilters && (
-        <button type="button" onClick={() => router.push(pathname)} className="text-sm text-slate-500 hover:text-slate-900 hover:underline">
+        <button type="button" onClick={clearFilters} className="text-sm text-slate-500 hover:text-slate-900 hover:underline">
           Limpiar filtros
         </button>
       )}
