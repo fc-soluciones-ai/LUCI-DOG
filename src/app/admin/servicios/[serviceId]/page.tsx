@@ -29,14 +29,6 @@ const STAGE_LABEL: Record<string, string> = {
 
 const STAGE_OPTIONS = Object.keys(STAGE_LABEL)
 
-const SIZE_FIELDS = [
-  { key: 'qtyXS', label: 'XS' },
-  { key: 'qtyS', label: 'S' },
-  { key: 'qtyM', label: 'M' },
-  { key: 'qtyL', label: 'L' },
-  { key: 'qtyXL', label: 'XL' },
-] as const
-
 export default async function ServiceDetailPage({ params }: { params: Promise<{ serviceId: string }> }) {
   const { serviceId } = await params
   const service = await prisma.service.findUnique({
@@ -73,9 +65,9 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
       <section>
         <h2 className="text-lg font-medium text-slate-900">Fórmulas cosméticas</h2>
         <p className="mt-1 text-sm text-slate-500">
-          El "machote" de gasto de este servicio: por cada producto, cuánto se usa exactamente en cada talla — ya con
-          tu propia dilución, conteo de pañoletas, algodón, etc. calculado. Mise en Place y el cierre de inventario
-          usan el número de la talla real de la mascota, tal cual lo escribas aquí.
+          El "machote" de gasto de este servicio (ya de por sí es una talla específica, ej. "Baño XL"): elige qué
+          productos usa y cuánto de cada uno — ya con tu propia dilución, conteo de pañoletas, algodón, etc.
+          calculado. Mise en Place y el cierre de inventario usan ese número tal cual.
         </p>
 
         <div className="mt-3 divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
@@ -88,14 +80,9 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
                   <p className="font-medium text-slate-900">
                     {formula.name} {formula.dilutionRatio ? <span className="text-slate-400">({formula.dilutionRatio})</span> : null}
                   </p>
-                  <p className="text-sm text-slate-500">{formula.product.name}</p>
-                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-500">
-                    {SIZE_FIELDS.map(({ key, label }) => (
-                      <span key={key}>
-                        <span className="font-medium text-slate-700">{label}</span> {formula[key].toString()} {unit}
-                      </span>
-                    ))}
-                  </div>
+                  <p className="text-sm text-slate-500">
+                    {formula.product.name} — {formula.quantity.toString()} {unit}
+                  </p>
                 </div>
                 <div className="flex items-center gap-3">
                   <span
@@ -129,24 +116,17 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
                           Dilución (opcional, solo referencia)
                           <input name="dilutionRatio" defaultValue={formula.dilutionRatio ?? ''} placeholder="1:8" className="input mt-1 w-full" />
                         </label>
-                        <div>
-                          <p className="text-sm text-slate-700">Cantidad exacta por talla ({unit || 'unidad'})</p>
-                          <div className="mt-1 grid grid-cols-5 gap-2">
-                            {SIZE_FIELDS.map(({ key, label }) => (
-                              <label key={key} className="text-xs text-slate-500">
-                                {label}
-                                <input
-                                  name={key}
-                                  type="number"
-                                  step="0.01"
-                                  required
-                                  defaultValue={formula[key].toString()}
-                                  className="input mt-1 w-full"
-                                />
-                              </label>
-                            ))}
-                          </div>
-                        </div>
+                        <label className="text-sm text-slate-700">
+                          Cantidad exacta ({unit || 'unidad'})
+                          <input
+                            name="quantity"
+                            type="number"
+                            step="0.01"
+                            required
+                            defaultValue={formula.quantity.toString()}
+                            className="input mt-1 w-full"
+                          />
+                        </label>
                         <label className="text-sm text-slate-700">
                           Instrucciones (opcional)
                           <textarea name="instructions" defaultValue={formula.instructions ?? ''} rows={2} className="input mt-1 w-full" />
@@ -181,17 +161,10 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
               ))}
             </select>
             <input name="dilutionRatio" placeholder="Dilución (ej. 1:8, opcional, solo referencia)" className="input sm:col-span-2" />
-            <div className="sm:col-span-2">
-              <p className="text-xs font-medium text-slate-700">Cantidad exacta por talla</p>
-              <div className="mt-1 grid grid-cols-5 gap-2">
-                {SIZE_FIELDS.map(({ key, label }) => (
-                  <label key={key} className="text-xs text-slate-500">
-                    {label}
-                    <input name={key} type="number" step="0.01" required defaultValue={0} className="input mt-1 w-full" />
-                  </label>
-                ))}
-              </div>
-            </div>
+            <label className="text-xs text-slate-500 sm:col-span-2">
+              Cantidad exacta
+              <input name="quantity" type="number" step="0.01" required defaultValue={0} className="input mt-1 w-full" />
+            </label>
             <textarea name="instructions" placeholder="Instrucciones (opcional)" rows={2} className="input sm:col-span-2" />
             <button type="submit" className="col-span-full w-fit rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white">
               Crear fórmula

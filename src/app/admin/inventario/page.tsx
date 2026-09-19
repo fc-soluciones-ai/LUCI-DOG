@@ -90,7 +90,7 @@ export default async function InventarioPage() {
                               type="number"
                               step="0.1"
                               name={`formula_${formula.id}`}
-                              defaultValue={suggestedMlForFormula(formula, appointment.pet.sizeCategory)}
+                              defaultValue={suggestedMlForFormula(formula)}
                               className="input mt-1"
                             />
                           </label>

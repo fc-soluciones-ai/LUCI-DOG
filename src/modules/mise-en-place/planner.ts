@@ -1,6 +1,6 @@
 import { AppointmentStatus, InstrumentStatus, InstrumentType, PrepItemType } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { quantityForSize, STAGE_INSTRUMENT_TYPES } from '@/modules/shared/grooming'
+import { STAGE_INSTRUMENT_TYPES } from '@/modules/shared/grooming'
 import { resolveServiceStages } from '@/modules/shared/serviceStages'
 import { zonedDayRange } from '@/modules/agenda/timezone'
 
@@ -50,7 +50,7 @@ export async function generateDailyPrepPlan(forDate: Date) {
 
   for (const appointment of appointments) {
     for (const formula of appointment.service.formulas) {
-      const ml = quantityForSize(formula, appointment.pet.sizeCategory)
+      const ml = Number(formula.quantity)
       const entry = formulaDemand.get(formula.id)
       formulaDemand.set(formula.id, { formula, ml: (entry?.ml ?? 0) + ml })
       productDemand.set(formula.productId, (productDemand.get(formula.productId) ?? 0) + ml)

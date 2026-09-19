@@ -1,6 +1,6 @@
 import { AppointmentStatus, InventoryTxType } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { quantityForSize, STAGE_INSTRUMENT_TYPES, type FormulaQuantities } from '@/modules/shared/grooming'
+import { STAGE_INSTRUMENT_TYPES } from '@/modules/shared/grooming'
 import type { ResolvedStage } from '@/modules/shared/serviceStages'
 import { computeInstrumentStatus } from './instruments'
 
@@ -47,9 +47,9 @@ export function suggestedInstrumentTypesForService(stageTemplates: ResolvedStage
   return suggestions
 }
 
-/** La cantidad exacta que el admin definió para esa talla en la fórmula — sin escalar de nuevo. */
-export function suggestedMlForFormula(formula: FormulaQuantities, sizeCategory: string | null) {
-  return quantityForSize(formula, sizeCategory)
+/** La cantidad exacta que el admin definió para esta fórmula de este servicio — sin escalar. */
+export function suggestedMlForFormula(formula: { quantity: number | { toString(): string } }) {
+  return Number(formula.quantity)
 }
 
 /**

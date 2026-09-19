@@ -398,11 +398,7 @@ model Formula {
   name          String // ej. "Shampoo hipoalergénico 1:8"
   dilutionRatio String? // "1:8" — nota de referencia para el staff, no se usa en cálculos
   instructions  String?
-  qtyXS         Decimal  @default(0) @db.Decimal(8, 2)
-  qtyS          Decimal  @default(0) @db.Decimal(8, 2)
-  qtyM          Decimal  @default(0) @db.Decimal(8, 2)
-  qtyL          Decimal  @default(0) @db.Decimal(8, 2)
-  qtyXL         Decimal  @default(0) @db.Decimal(8, 2)
+  quantity      Decimal  @default(0) @db.Decimal(8, 2) // cantidad exacta para este servicio (ya es una talla específica del catálogo)
   active        Boolean  @default(true)
 
   service Service? @relation(fields: [serviceId], references: [id])

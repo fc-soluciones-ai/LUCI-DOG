@@ -98,11 +98,7 @@ export async function createFormulaAction(serviceId: string, formData: FormData)
   await createFormula(serviceId, {
     name,
     productId,
-    qtyXS: num(formData, 'qtyXS') ?? 0,
-    qtyS: num(formData, 'qtyS') ?? 0,
-    qtyM: num(formData, 'qtyM') ?? 0,
-    qtyL: num(formData, 'qtyL') ?? 0,
-    qtyXL: num(formData, 'qtyXL') ?? 0,
+    quantity: num(formData, 'quantity') ?? 0,
     dilutionRatio: str(formData, 'dilutionRatio'),
     instructions: str(formData, 'instructions'),
   })
@@ -117,11 +113,7 @@ export async function updateFormulaAction(serviceId: string, formulaId: string, 
   await updateFormula(formulaId, {
     name,
     productId,
-    qtyXS: num(formData, 'qtyXS') ?? 0,
-    qtyS: num(formData, 'qtyS') ?? 0,
-    qtyM: num(formData, 'qtyM') ?? 0,
-    qtyL: num(formData, 'qtyL') ?? 0,
-    qtyXL: num(formData, 'qtyXL') ?? 0,
+    quantity: num(formData, 'quantity') ?? 0,
     dilutionRatio: str(formData, 'dilutionRatio'),
     instructions: str(formData, 'instructions'),
   })

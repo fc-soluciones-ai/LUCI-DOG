@@ -14,11 +14,7 @@ export interface FormulaInput {
   productId: string
   dilutionRatio?: string
   instructions?: string
-  qtyXS: number
-  qtyS: number
-  qtyM: number
-  qtyL: number
-  qtyXL: number
+  quantity: number
 }
 
 export async function createFormula(serviceId: string, input: FormulaInput) {
