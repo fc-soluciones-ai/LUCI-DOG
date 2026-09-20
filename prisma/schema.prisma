@@ -623,10 +623,15 @@ model EquipmentCategory {
 // /admin/configuracion — reemplaza variables de entorno para datos que el admin
 // debe poder actualizar sin depender de un despliegue.
 model AppSettings {
-  id                String   @id @default("default")
-  paymentInfoText   String? // datos de SINPE Móvil / cuenta bancaria mostrados al cliente al pagar
-  bufferTimeMinutes Int      @default(15) // margen de limpieza/preparación entre citas consecutivas
-  updatedAt         DateTime @updatedAt
+  id                    String   @id @default("default")
+  paymentInfoText       String? // datos de SINPE Móvil / cuenta bancaria mostrados al cliente al pagar
+  bufferTimeMinutes     Int      @default(15) // margen de limpieza/preparación entre citas consecutivas
+  pickupDeliveryEnabled Boolean  @default(false) // servicio de recogida y entrega a domicilio, activado/desactivado sin borrar los horarios
+  pickupStartTime       String? // "HH:mm" en hora de Costa Rica
+  pickupEndTime         String?
+  deliveryStartTime     String?
+  deliveryEndTime       String?
+  updatedAt             DateTime @updatedAt
 }
 
 // Horario de negocio por día de la semana — alimenta el motor de disponibilidad

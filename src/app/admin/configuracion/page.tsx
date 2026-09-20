@@ -1,7 +1,7 @@
 import { listEquipmentCategories } from '@/modules/config/equipmentCategories'
 import { listProductCategories, listUnitsOfMeasure } from '@/modules/config/productCatalogs'
 import { listCustomerTags } from '@/modules/config/customerTags'
-import { getBufferTimeMinutes, getRawPaymentInfoText } from '@/modules/config/settings'
+import { getBufferTimeMinutes, getPickupDeliverySchedule, getRawPaymentInfoText } from '@/modules/config/settings'
 import { DAY_LABELS, listBusinessHours } from '@/modules/config/businessHours'
 import {
   createCustomerTagAction,
@@ -20,6 +20,7 @@ import {
   updateCustomerTagAction,
   updateEquipmentCategoryAction,
   updatePaymentInfoTextAction,
+  updatePickupDeliveryScheduleAction,
   updateProductCategoryAction,
   updateUnitOfMeasureAction,
 } from '@/modules/config/actions'
@@ -30,15 +31,17 @@ import { SortableCatalogList } from '@/components/admin/SortableCatalogList'
 export const dynamic = 'force-dynamic'
 
 export default async function ConfiguracionPage() {
-  const [equipmentCategories, productCategories, units, tags, paymentInfoText, businessHours, bufferTimeMinutes] = await Promise.all([
-    listEquipmentCategories(),
-    listProductCategories(),
-    listUnitsOfMeasure(),
-    listCustomerTags(),
-    getRawPaymentInfoText(),
-    listBusinessHours(),
-    getBufferTimeMinutes(),
-  ])
+  const [equipmentCategories, productCategories, units, tags, paymentInfoText, businessHours, bufferTimeMinutes, pickupDelivery] =
+    await Promise.all([
+      listEquipmentCategories(),
+      listProductCategories(),
+      listUnitsOfMeasure(),
+      listCustomerTags(),
+      getRawPaymentInfoText(),
+      listBusinessHours(),
+      getBufferTimeMinutes(),
+      getPickupDeliverySchedule(),
+    ])
 
   return (
     <div className="space-y-8">
@@ -351,6 +354,54 @@ export default async function ConfiguracionPage() {
             </button>
           </form>
         </div>
+      </section>
+
+      <section>
+        <h2 className="text-lg font-medium text-slate-900">Horario de recogida y entrega</h2>
+        <p className="mt-1 text-sm text-slate-500">
+          Ventana horaria del servicio a domicilio — independiente del horario de negocio. Informativo por
+          ahora (no controla disponibilidad de citas).
+        </p>
+
+        <form action={updatePickupDeliveryScheduleAction} className="mt-3 max-w-lg space-y-3 rounded-lg border border-slate-200 bg-white p-4">
+          <label className="flex items-center gap-1.5 text-sm text-slate-700">
+            <input type="checkbox" name="enabled" defaultChecked={pickupDelivery.enabled} />
+            Servicio de recogida y entrega activo
+          </label>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <p className="text-sm font-medium text-slate-700">Recogida</p>
+              <div className="mt-1 flex items-center gap-2">
+                <label className="flex items-center gap-1.5 text-sm text-slate-700">
+                  Desde
+                  <input type="time" name="pickupStartTime" defaultValue={pickupDelivery.pickupStartTime} className="input" />
+                </label>
+                <label className="flex items-center gap-1.5 text-sm text-slate-700">
+                  Hasta
+                  <input type="time" name="pickupEndTime" defaultValue={pickupDelivery.pickupEndTime} className="input" />
+                </label>
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-slate-700">Entrega</p>
+              <div className="mt-1 flex items-center gap-2">
+                <label className="flex items-center gap-1.5 text-sm text-slate-700">
+                  Desde
+                  <input type="time" name="deliveryStartTime" defaultValue={pickupDelivery.deliveryStartTime} className="input" />
+                </label>
+                <label className="flex items-center gap-1.5 text-sm text-slate-700">
+                  Hasta
+                  <input type="time" name="deliveryEndTime" defaultValue={pickupDelivery.deliveryEndTime} className="input" />
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white">
+            Guardar horario
+          </button>
+        </form>
       </section>
 
       <section>

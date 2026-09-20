@@ -7,7 +7,7 @@ import {
   setEquipmentCategoryActive,
   updateEquipmentCategory,
 } from './equipmentCategories'
-import { updateBufferTimeMinutes, updatePaymentInfoText } from './settings'
+import { updateBufferTimeMinutes, updatePaymentInfoText, updatePickupDeliverySchedule } from './settings'
 import { updateBusinessHour } from './businessHours'
 import {
   getBrandingAssetPath,
@@ -74,6 +74,17 @@ export async function updateBufferTimeMinutesAction(formData: FormData) {
   const minutes = Number(formData.get('bufferTimeMinutes') ?? 15)
   if (!Number.isFinite(minutes) || minutes < 0) return
   await updateBufferTimeMinutes(Math.round(minutes))
+  revalidateAgendaEverywhere()
+}
+
+export async function updatePickupDeliveryScheduleAction(formData: FormData) {
+  await updatePickupDeliverySchedule({
+    enabled: formData.get('enabled') === 'on',
+    pickupStartTime: String(formData.get('pickupStartTime') ?? '08:00'),
+    pickupEndTime: String(formData.get('pickupEndTime') ?? '10:00'),
+    deliveryStartTime: String(formData.get('deliveryStartTime') ?? '16:00'),
+    deliveryEndTime: String(formData.get('deliveryEndTime') ?? '18:00'),
+  })
   revalidateAgendaEverywhere()
 }
 
