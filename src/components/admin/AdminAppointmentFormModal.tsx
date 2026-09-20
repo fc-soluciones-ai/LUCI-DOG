@@ -68,6 +68,7 @@ export function AdminAppointmentFormModal({
   const [newPetSize, setNewPetSize] = useState('')
 
   const [serviceId, setServiceId] = useState('')
+  const [recurrence, setRecurrence] = useState('')
   const [date, setDate] = useState(defaultDate ?? todayIso())
   const [slots, setSlots] = useState<{ start: string; available: boolean }[]>([])
   const [loadingSlots, setLoadingSlots] = useState(false)
@@ -83,6 +84,7 @@ export function AdminAppointmentFormModal({
     setNewPetMode(false)
     setNewPetSize('')
     setServiceId('')
+    setRecurrence('')
     setDate(defaultDate ?? todayIso())
     setSlots([])
     setSelectedSlot(null)
@@ -90,6 +92,7 @@ export function AdminAppointmentFormModal({
 
   useEffect(() => {
     if (state.ok) {
+      if (state.message) alert(state.message)
       setOpen(false)
       resetAll()
     }
@@ -301,6 +304,26 @@ export function AdminAppointmentFormModal({
               </select>
             </label>
           )}
+
+          <label className="text-sm text-slate-700">
+            Recurrencia (opcional)
+            <select
+              name="recurrence"
+              value={recurrence}
+              onChange={(event) => setRecurrence(event.target.value)}
+              className="input mt-1 w-full"
+            >
+              <option value="">No es recurrente</option>
+              <option value="DAYS_15">Quincenal (cada 15 días)</option>
+              <option value="DAYS_30">Mensual (cada 30 días)</option>
+            </select>
+            {recurrence && (
+              <p className="mt-1 text-xs text-slate-400">
+                Al agendar, se generan de una vez todas las citas siguientes hasta el 31 de diciembre, en el
+                mismo horario.
+              </p>
+            )}
+          </label>
 
           <label className="text-sm text-slate-700">
             Fecha

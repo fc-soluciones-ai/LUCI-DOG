@@ -1,8 +1,9 @@
-import { AppointmentSource, AppointmentStatus } from '@prisma/client'
+import { AppointmentSource, AppointmentStatus, type RecurrenceInterval } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { assertNoPetOverlap, assertSlotAvailable, computeDurationMinutes } from './availability'
 import { scheduleAppointmentNotifications } from './notifications'
-import { zonedDayRange } from './timezone'
+import { generateRecurringBatch, INTERVAL_DAYS } from './recurrence'
+import { formatInBusinessTz, parseZonedDateTime, zonedDayRange } from './timezone'
 import { ValidationError } from './errors'
 
 export interface AdminAppointmentFilters {
@@ -39,6 +40,8 @@ export interface AdminBookingInput {
   serviceId: string
   scheduledStart: Date
   groomerId?: string
+  /** Si viene, esta cita queda como la primera de una programación recurrente: se crea el RecurringSchedule y se generan de una vez todas las citas siguientes hasta el 31 de diciembre del año de esta cita, en el mismo horario. */
+  recurrence?: RecurrenceInterval
 }
 
 /**
@@ -71,7 +74,7 @@ export async function createAppointmentByAdmin(input: AdminBookingInput) {
     await assertNoPetOverlap(input.petId, input.scheduledStart, scheduledEnd)
   }
 
-  return prisma.$transaction(async (tx) => {
+  const { appointment, scheduleId } = await prisma.$transaction(async (tx) => {
     const tutor = input.tutorId
       ? await tx.tutor.findUniqueOrThrow({ where: { id: input.tutorId } })
       : await tx.tutor.create({ data: { ...input.newTutor! } })
@@ -95,6 +98,43 @@ export async function createAppointmentByAdmin(input: AdminBookingInput) {
     })
 
     await scheduleAppointmentNotifications(tx, appointment.id)
-    return appointment
+
+    let scheduleId: string | null = null
+
+    if (input.recurrence) {
+      const schedule = await tx.recurringSchedule.create({
+        data: {
+          petId: pet.id,
+          serviceId: service.id,
+          interval: input.recurrence,
+          preferredTime: formatInBusinessTz(input.scheduledStart, 'HH:mm'),
+        },
+      })
+      await tx.appointment.update({ where: { id: appointment.id }, data: { recurringScheduleId: schedule.id } })
+      scheduleId = schedule.id
+    }
+
+    return { appointment, scheduleId }
   })
+
+  let recurringSummary: { generated: number; skipped: number } | null = null
+
+  if (input.recurrence && scheduleId) {
+    // Fuera de la transacción anterior a propósito: generar todas las citas
+    // restantes del año (varias creaciones + su cadena de notificaciones cada
+    // una) puede tardar más que el timeout por defecto de una transacción
+    // interactiva de Prisma (5s) y abortarla a medio camino.
+    //
+    // Tope defensivo de 30 ocurrencias para no disparar cientos de citas ante
+    // una fecha o intervalo mal calculado.
+    const yearEnd = parseZonedDateTime(`${formatInBusinessTz(input.scheduledStart, 'yyyy')}-12-31T23:59:59`)
+    const intervalMs = INTERVAL_DAYS[input.recurrence] * 24 * 60 * 60 * 1000
+    const rawCount = Math.floor((yearEnd.getTime() - input.scheduledStart.getTime()) / intervalMs)
+    const count = Math.min(Math.max(rawCount, 0), 30)
+
+    const result = count > 0 ? await generateRecurringBatch(prisma, scheduleId, count) : { created: [], skippedConflicts: [] }
+    recurringSummary = { generated: result.created.length, skipped: result.skippedConflicts.length }
+  }
+
+  return { ...appointment, recurringSummary }
 }

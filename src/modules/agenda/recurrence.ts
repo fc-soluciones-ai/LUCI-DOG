@@ -4,7 +4,7 @@ import { scheduleAppointmentNotifications } from './notifications'
 
 type Db = PrismaClient | Prisma.TransactionClient
 
-const INTERVAL_DAYS: Record<RecurrenceInterval, number> = {
+export const INTERVAL_DAYS: Record<RecurrenceInterval, number> = {
   DAYS_7: 7,
   DAYS_15: 15,
   DAYS_21: 21,

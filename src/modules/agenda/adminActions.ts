@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { requireRole } from '@/modules/auth/profile'
 import { searchTutors } from '@/modules/crm/tutors'
 import { listPetsForTutor } from '@/modules/crm/pets'
+import type { RecurrenceInterval } from '@prisma/client'
 import { getAvailableSlots, type TimeSlot } from './availability'
 import { createAppointmentByAdmin } from './adminAppointments'
 import { ValidationError } from './errors'
@@ -50,6 +51,7 @@ export async function createAppointmentByAdminAction(
   const serviceId = str(formData, 'serviceId')
   const scheduledStart = str(formData, 'scheduledStart')
   const groomerId = str(formData, 'groomerId')
+  const recurrence = str(formData, 'recurrence') as RecurrenceInterval | undefined
 
   const newTutorFullName = str(formData, 'newTutorFullName')
   const newTutorPhone = str(formData, 'newTutorPhone')
@@ -66,8 +68,10 @@ export async function createAppointmentByAdminAction(
     return { ok: false, message: 'Selecciona una mascota existente o completa nombre y raza de la nueva.' }
   }
 
+  let recurringSummary: { generated: number; skipped: number } | null = null
+
   try {
-    await createAppointmentByAdmin({
+    const result = await createAppointmentByAdmin({
       tutorId,
       newTutor: tutorId
         ? undefined
@@ -79,7 +83,9 @@ export async function createAppointmentByAdminAction(
       serviceId,
       scheduledStart: new Date(scheduledStart),
       groomerId,
+      recurrence,
     })
+    recurringSummary = result.recurringSummary
   } catch (error) {
     if (error instanceof ValidationError) return { ok: false, message: error.message }
     console.error('[createAppointmentByAdminAction] falló:', error)
@@ -90,5 +96,14 @@ export async function createAppointmentByAdminAction(
   revalidatePath('/client')
   revalidatePath('/dashboard-tv')
   revalidatePath('/groomer')
+
+  if (recurringSummary) {
+    const parts = [`Cita agendada y ${recurringSummary.generated} cita${recurringSummary.generated === 1 ? '' : 's'} más generada${recurringSummary.generated === 1 ? '' : 's'} hasta fin de año.`]
+    if (recurringSummary.skipped > 0) {
+      parts.push(`${recurringSummary.skipped} fecha${recurringSummary.skipped === 1 ? '' : 's'} se saltó por choque de horario con el groomer asignado — revísalas en Citas / Agenda.`)
+    }
+    return { ok: true, message: parts.join(' ') }
+  }
+
   return { ok: true }
 }
