@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState, type DragEvent, type MouseEvent } from 'react'
+import { useEffect, useRef, useState, type DragEvent, type MouseEvent } from 'react'
 import { compressImageIfNeeded, formatMB, MAX_UPLOAD_BYTES, replaceInputFile, validateUploadSize } from '@/lib/client/imageUpload'
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
@@ -13,15 +13,79 @@ interface Props {
   onPreparingChange?: (preparing: boolean) => void
 }
 
-/** Subida de imagen con drag-and-drop, selector de archivo, compresión automática y vista previa. */
+/**
+ * Subida de imagen con drag-and-drop, selector de archivo, compresión
+ * automática y vista previa. "Tomar foto" abre la cámara en vivo dentro de
+ * la propia página (getUserMedia) en vez de delegar en el selector nativo
+ * del sistema — en varios Android/iOS ese selector ignora `capture` y solo
+ * ofrece la galería. Si el navegador no soporta cámara en vivo (o el
+ * usuario niega el permiso), cae al `<input capture>` como respaldo.
+ */
 export function ImageUploader({ name = 'image', removeFieldName = 'removeImage', initialImageUrl, onPreparingChange }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const cameraInputRef = useRef<HTMLInputElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
   const [preview, setPreview] = useState<string | null>(initialImageUrl ?? null)
   const [removed, setRemoved] = useState(false)
   const [dragOver, setDragOver] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [preparing, setPreparing] = useState(false)
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null)
+  const [openingCamera, setOpeningCamera] = useState(false)
+
+  useEffect(() => {
+    if (videoRef.current && cameraStream) videoRef.current.srcObject = cameraStream
+    return () => {
+      cameraStream?.getTracks().forEach((track) => track.stop())
+    }
+  }, [cameraStream])
+
+  async function openCamera() {
+    setError(null)
+    if (!navigator.mediaDevices?.getUserMedia) {
+      cameraInputRef.current?.click()
+      return
+    }
+    setOpeningCamera(true)
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } },
+        audio: false,
+      })
+      setCameraStream(stream)
+    } catch {
+      // Permiso denegado o sin cámara disponible — respaldo al selector del sistema.
+      cameraInputRef.current?.click()
+    } finally {
+      setOpeningCamera(false)
+    }
+  }
+
+  function closeCamera() {
+    setCameraStream(null)
+  }
+
+  function capturePhoto() {
+    const video = videoRef.current
+    if (!video || !video.videoWidth) return
+    const canvas = document.createElement('canvas')
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    const ctx = canvas.getContext('2d')
+    if (!ctx) {
+      closeCamera()
+      return
+    }
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
+    canvas.toBlob(
+      (blob) => {
+        closeCamera()
+        if (blob) void applyFile(new File([blob], `foto-${Date.now()}.jpg`, { type: 'image/jpeg' }))
+      },
+      'image/jpeg',
+      0.9
+    )
+  }
 
   async function applyFile(file: File | undefined) {
     setError(null)
@@ -75,15 +139,38 @@ export function ImageUploader({ name = 'image', removeFieldName = 'removeImage',
       <div className="mb-1 flex justify-end">
         <button
           type="button"
+          disabled={openingCamera}
           onClick={(event) => {
             event.stopPropagation()
-            cameraInputRef.current?.click()
+            void openCamera()
           }}
-          className="text-xs font-medium text-slate-600 hover:text-slate-900 hover:underline"
+          className="text-xs font-medium text-slate-600 hover:text-slate-900 hover:underline disabled:opacity-50"
         >
-          📷 Tomar foto
+          {openingCamera ? 'Abriendo cámara…' : '📷 Tomar foto'}
         </button>
       </div>
+
+      {cameraStream && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black">
+          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+          <video ref={videoRef} autoPlay playsInline muted className="max-h-full max-w-full" />
+          <div className="absolute inset-x-0 bottom-8 flex items-center justify-center gap-8">
+            <button
+              type="button"
+              onClick={closeCamera}
+              className="rounded-full bg-white/20 px-4 py-2 text-sm font-medium text-white backdrop-blur"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={capturePhoto}
+              aria-label="Capturar foto"
+              className="h-16 w-16 rounded-full border-4 border-white bg-white/30 active:bg-white/50"
+            />
+          </div>
+        </div>
+      )}
       <div
         onDragOver={(event) => {
           event.preventDefault()
