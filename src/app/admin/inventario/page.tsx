@@ -12,11 +12,13 @@ import {
   markInstrumentSharpenedAction,
   restockProductAction,
   retireInstrumentAction,
+  updateInstrumentAction,
   updateProductAction,
 } from '@/modules/inventory/actions'
 import { DataTableActions } from '@/components/admin/DataTableActions'
 import { HealthProgressBar } from '@/components/admin/HealthProgressBar'
 import { EmptyState } from '@/components/admin/EmptyState'
+import { ImageUploader } from '@/components/admin/ImageUploader'
 import { listActiveProductCategories, listActiveUnitsOfMeasure } from '@/modules/config/productCatalogs'
 
 export const dynamic = 'force-dynamic'
@@ -143,14 +145,22 @@ export default async function InventarioPage() {
             const belowMin = Number(product.stockCurrent) < Number(product.stockMin)
             return (
               <div key={product.id} className="flex items-center justify-between gap-3 p-4">
-                <div>
-                  <p className="font-medium text-slate-900">
-                    {product.name} {product.category && <span className="text-xs text-slate-400">({product.category.name})</span>}
-                  </p>
-                  <p className="text-sm text-slate-500">
-                    Stock: {Number(product.stockCurrent).toFixed(1)} {product.unitOfMeasure?.abbreviation ?? ''} · Mínimo:{' '}
-                    {Number(product.stockMin).toFixed(1)} {product.unitOfMeasure?.abbreviation ?? ''}
-                  </p>
+                <div className="flex min-w-0 items-center gap-3">
+                  {product.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={product.imageUrl} alt={product.name} className="h-12 w-12 shrink-0 rounded-lg object-cover" />
+                  ) : (
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xl">📦</div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="font-medium text-slate-900">
+                      {product.name} {product.category && <span className="text-xs text-slate-400">({product.category.name})</span>}
+                    </p>
+                    <p className="text-sm text-slate-500">
+                      Stock: {Number(product.stockCurrent).toFixed(1)} {product.unitOfMeasure?.abbreviation ?? ''} · Mínimo:{' '}
+                      {Number(product.stockMin).toFixed(1)} {product.unitOfMeasure?.abbreviation ?? ''}
+                    </p>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {belowMin && (
@@ -182,6 +192,7 @@ export default async function InventarioPage() {
                     editAction={updateProductAction.bind(null, product.id)}
                     editFields={
                       <>
+                        <ImageUploader initialImageUrl={product.imageUrl} />
                         <label className="text-sm text-slate-700">
                           Nombre
                           <input name="name" required defaultValue={product.name} className="input mt-1 w-full" />
@@ -254,6 +265,9 @@ export default async function InventarioPage() {
         <details className="mt-3">
           <summary className="cursor-pointer text-sm font-medium text-slate-700">+ Nuevo producto</summary>
           <form action={createProductAction} className="mt-3 grid max-w-lg gap-2 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <ImageUploader />
+            </div>
             <input name="name" required placeholder="Nombre" className="input" />
             <select name="categoryId" defaultValue="" className="input">
               <option value="">Categoría (opcional)</option>
@@ -298,19 +312,28 @@ export default async function InventarioPage() {
 
             return (
               <div key={instrument.id} className="flex items-center justify-between gap-3 p-4">
-                <div>
-                  <p className="font-medium text-slate-900">
-                    {instrument.name} <span className="text-xs text-slate-400">({instrument.type})</span>
-                  </p>
-                  <p className="text-sm text-slate-500">
-                    {Number(instrument.usedHours).toFixed(1)}h usadas
-                    {instrument.expectedLifeHours ? ` / ${Number(instrument.expectedLifeHours)}h` : ''}
-                  </p>
-                  {instrument.remainingRatio !== null && (
-                    <div className="mt-2">
-                      <HealthProgressBar ratio={instrument.remainingRatio} />
-                    </div>
+                <div className="flex min-w-0 items-center gap-3">
+                  {instrument.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={instrument.imageUrl} alt={instrument.name} className="h-12 w-12 shrink-0 rounded-lg object-cover" />
+                  ) : (
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xl">🛠️</div>
                   )}
+                  <div className="min-w-0">
+                    <p className="font-medium text-slate-900">
+                      {instrument.name}{' '}
+                      <span className="text-xs text-slate-400">({INSTRUMENT_TYPE_LABEL[instrument.type] ?? instrument.type})</span>
+                    </p>
+                    <p className="text-sm text-slate-500">
+                      {Number(instrument.usedHours).toFixed(1)}h usadas
+                      {instrument.expectedLifeHours ? ` / ${Number(instrument.expectedLifeHours)}h` : ''}
+                    </p>
+                    {instrument.remainingRatio !== null && (
+                      <div className="mt-2">
+                        <HealthProgressBar ratio={instrument.remainingRatio} />
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusColor}`}>{instrument.status}</span>
@@ -328,6 +351,50 @@ export default async function InventarioPage() {
                       </form>
                     </>
                   )}
+                  <DataTableActions
+                    editLabel="Editar"
+                    editTitle={`Editar instrumento — ${instrument.name}`}
+                    editAction={updateInstrumentAction.bind(null, instrument.id)}
+                    editFields={
+                      <>
+                        <ImageUploader initialImageUrl={instrument.imageUrl} />
+                        <label className="text-sm text-slate-700">
+                          Nombre
+                          <input name="name" required defaultValue={instrument.name} className="input mt-1 w-full" />
+                        </label>
+                        <label className="text-sm text-slate-700">
+                          Tipo
+                          <select name="type" defaultValue={instrument.type} className="input mt-1 w-full">
+                            {Object.entries(INSTRUMENT_TYPE_LABEL).map(([value, label]) => (
+                              <option key={value} value={value}>
+                                {label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <div className="grid grid-cols-2 gap-3">
+                          <label className="text-sm text-slate-700">
+                            Vida útil (horas)
+                            <input
+                              name="expectedLifeHours"
+                              type="number"
+                              defaultValue={instrument.expectedLifeHours ? Number(instrument.expectedLifeHours) : ''}
+                              className="input mt-1 w-full"
+                            />
+                          </label>
+                          <label className="text-sm text-slate-700">
+                            Vida útil (usos)
+                            <input
+                              name="expectedLifeUses"
+                              type="number"
+                              defaultValue={instrument.expectedLifeUses ?? ''}
+                              className="input mt-1 w-full"
+                            />
+                          </label>
+                        </div>
+                      </>
+                    }
+                  />
                 </div>
               </div>
             )
@@ -337,6 +404,9 @@ export default async function InventarioPage() {
         <details className="mt-3">
           <summary className="cursor-pointer text-sm font-medium text-slate-700">+ Nuevo instrumento</summary>
           <form action={createInstrumentAction} className="mt-3 grid max-w-lg gap-2 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <ImageUploader />
+            </div>
             <input name="name" required placeholder="Nombre" className="input" />
             <select name="type" defaultValue="SCISSORS" className="input">
               <option value="BLADE">Cuchilla</option>

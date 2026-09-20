@@ -93,6 +93,24 @@ export async function deletePetPhotoFile(path: string): Promise<void> {
   return deleteFromBucket('pets-photos', path)
 }
 
+/** Foto de un producto de inventario, subida desde el teléfono (cámara o galería). */
+export async function uploadProductImage(file: File): Promise<UploadedFile> {
+  return uploadToBucket('products-images', file, IMAGE_TYPES)
+}
+
+export async function deleteProductImage(path: string): Promise<void> {
+  return deleteFromBucket('products-images', path)
+}
+
+/** Foto de una herramienta/instrumento, subida desde el teléfono (cámara o galería). */
+export async function uploadInstrumentImage(file: File): Promise<UploadedFile> {
+  return uploadToBucket('instruments-images', file, IMAGE_TYPES)
+}
+
+export async function deleteInstrumentImage(path: string): Promise<void> {
+  return deleteFromBucket('instruments-images', path)
+}
+
 /** Logo / favicon / ícono de PWA del White Label (bucket `branding-assets`). */
 export async function uploadBrandingAsset(file: File): Promise<UploadedFile> {
   return uploadToBucket('branding-assets', file, IMAGE_TYPES)

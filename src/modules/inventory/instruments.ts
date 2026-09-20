@@ -46,6 +46,8 @@ export interface CreateInstrumentInput {
   type: InstrumentType
   expectedLifeHours?: number
   expectedLifeUses?: number
+  imageUrl?: string | null
+  imagePath?: string | null
 }
 
 export async function createInstrument(input: CreateInstrumentInput) {
@@ -56,8 +58,39 @@ export async function createInstrument(input: CreateInstrumentInput) {
       purchaseDate: new Date(),
       expectedLifeHours: input.expectedLifeHours,
       expectedLifeUses: input.expectedLifeUses,
+      imageUrl: input.imageUrl,
+      imagePath: input.imagePath,
     },
   })
+}
+
+export interface UpdateInstrumentInput {
+  name: string
+  type: InstrumentType
+  expectedLifeHours?: number
+  expectedLifeUses?: number
+  imageUrl?: string | null
+  imagePath?: string | null
+}
+
+/** Edición de ficha del instrumento (Estandarización CRUD) — no toca horas/usos acumulados ni estado. */
+export async function updateInstrument(instrumentId: string, input: UpdateInstrumentInput) {
+  return prisma.instrument.update({
+    where: { id: instrumentId },
+    data: {
+      name: input.name,
+      type: input.type,
+      expectedLifeHours: input.expectedLifeHours,
+      expectedLifeUses: input.expectedLifeUses,
+      imageUrl: input.imageUrl,
+      imagePath: input.imagePath,
+    },
+  })
+}
+
+export async function getInstrumentImagePath(instrumentId: string) {
+  const instrument = await prisma.instrument.findUnique({ where: { id: instrumentId }, select: { imagePath: true } })
+  return instrument?.imagePath ?? null
 }
 
 /** Afilado/servicio del instrumento: reinicia el contador de horas de uso. */

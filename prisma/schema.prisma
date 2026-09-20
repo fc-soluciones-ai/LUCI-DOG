@@ -502,6 +502,8 @@ model Product {
   costPerUnit  Decimal  @db.Decimal(10, 4)
   supplier     String?
   active       Boolean  @default(true)
+  imageUrl     String? // URL pública en Supabase Storage (bucket products-images)
+  imagePath    String? // path interno del bucket, para poder reemplazar/eliminar el archivo
 
   category      ProductCategory? @relation(fields: [categoryId], references: [id])
   unitOfMeasure UnitOfMeasure?   @relation(fields: [unitId], references: [id])
@@ -561,6 +563,8 @@ model Instrument {
   usedCount           Int              @default(0)
   status              InstrumentStatus @default(OK)
   lastMaintenanceAt   DateTime?
+  imageUrl            String? // URL pública en Supabase Storage (bucket instruments-images)
+  imagePath           String? // path interno del bucket, para poder reemplazar/eliminar el archivo
 
   usageLogs InstrumentUsageLog[]
   prepItems DailyPrepItem[]

@@ -21,10 +21,12 @@
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values
-  ('pets-photos',      'pets-photos',      true, 4194304, array['image/jpeg', 'image/png', 'image/webp']),
-  ('payment-receipts', 'payment-receipts', true, 4194304, array['image/jpeg', 'image/png', 'image/webp', 'application/pdf']),
-  ('services-images',  'services-images',  true, 4194304, array['image/jpeg', 'image/png', 'image/webp']),
-  ('branding-assets',  'branding-assets',  true, 4194304, array['image/jpeg', 'image/png', 'image/webp'])
+  ('pets-photos',        'pets-photos',        true, 4194304, array['image/jpeg', 'image/png', 'image/webp']),
+  ('payment-receipts',   'payment-receipts',   true, 4194304, array['image/jpeg', 'image/png', 'image/webp', 'application/pdf']),
+  ('services-images',    'services-images',    true, 4194304, array['image/jpeg', 'image/png', 'image/webp']),
+  ('branding-assets',    'branding-assets',    true, 4194304, array['image/jpeg', 'image/png', 'image/webp']),
+  ('products-images',    'products-images',    true, 4194304, array['image/jpeg', 'image/png', 'image/webp']),
+  ('instruments-images', 'instruments-images', true, 4194304, array['image/jpeg', 'image/png', 'image/webp'])
 on conflict (id) do update
   set public             = excluded.public,
       file_size_limit    = excluded.file_size_limit,
@@ -57,6 +59,18 @@ create policy "Public read branding-assets"
   on storage.objects for select
   to public
   using (bucket_id = 'branding-assets');
+
+drop policy if exists "Public read products-images" on storage.objects;
+create policy "Public read products-images"
+  on storage.objects for select
+  to public
+  using (bucket_id = 'products-images');
+
+drop policy if exists "Public read instruments-images" on storage.objects;
+create policy "Public read instruments-images"
+  on storage.objects for select
+  to public
+  using (bucket_id = 'instruments-images');
 
 -- 3) Escritura (INSERT/UPDATE) — solo usuarios autenticados ---------------------
 -- Deliberadamente NO se incluye el rol "anon" aquí: darle INSERT a "anon"
@@ -121,3 +135,29 @@ create policy "Authenticated update branding-assets"
   to authenticated
   using (bucket_id = 'branding-assets')
   with check (bucket_id = 'branding-assets');
+
+drop policy if exists "Authenticated write products-images" on storage.objects;
+create policy "Authenticated write products-images"
+  on storage.objects for insert
+  to authenticated
+  with check (bucket_id = 'products-images');
+
+drop policy if exists "Authenticated update products-images" on storage.objects;
+create policy "Authenticated update products-images"
+  on storage.objects for update
+  to authenticated
+  using (bucket_id = 'products-images')
+  with check (bucket_id = 'products-images');
+
+drop policy if exists "Authenticated write instruments-images" on storage.objects;
+create policy "Authenticated write instruments-images"
+  on storage.objects for insert
+  to authenticated
+  with check (bucket_id = 'instruments-images');
+
+drop policy if exists "Authenticated update instruments-images" on storage.objects;
+create policy "Authenticated update instruments-images"
+  on storage.objects for update
+  to authenticated
+  using (bucket_id = 'instruments-images')
+  with check (bucket_id = 'instruments-images');

@@ -17,6 +17,8 @@ export interface CreateProductInput {
   stockMin: number
   costPerUnit: number
   supplier?: string
+  imageUrl?: string | null
+  imagePath?: string | null
 }
 
 export async function createProduct(input: CreateProductInput) {
@@ -40,11 +42,18 @@ export interface UpdateProductInput {
   stockMin: number
   costPerUnit: number
   supplier?: string
+  imageUrl?: string | null
+  imagePath?: string | null
 }
 
 /** Edición de ficha del producto (Estandarización CRUD) — no toca el stock actual. */
 export async function updateProduct(productId: string, input: UpdateProductInput) {
   return prisma.product.update({ where: { id: productId }, data: input })
+}
+
+export async function getProductImagePath(productId: string) {
+  const product = await prisma.product.findUnique({ where: { id: productId }, select: { imagePath: true } })
+  return product?.imagePath ?? null
 }
 
 /** Borrado lógico: deja de listarse/consumirse pero conserva su historial de movimientos. */

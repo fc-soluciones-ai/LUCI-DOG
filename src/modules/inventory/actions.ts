@@ -3,9 +3,10 @@
 import { revalidatePath } from 'next/cache'
 import { EquipmentStatus, InstrumentType } from '@prisma/client'
 import { createEquipment, flagEquipmentStatus, logMaintenance, softDeleteEquipment, updateEquipment } from './equipment'
-import { createInstrument, markInstrumentSharpened, retireInstrument } from './instruments'
-import { createProduct, restockProduct, softDeleteProduct, updateProduct } from './products'
+import { createInstrument, getInstrumentImagePath, markInstrumentSharpened, retireInstrument, updateInstrument } from './instruments'
+import { createProduct, getProductImagePath, restockProduct, softDeleteProduct, updateProduct } from './products'
 import { closeServiceInventory } from './serviceClosure'
+import { deleteInstrumentImage, deleteProductImage, uploadInstrumentImage, uploadProductImage } from '@/lib/supabase/storage'
 
 function num(formData: FormData, key: string): number | undefined {
   const value = formData.get(key)
@@ -13,7 +14,40 @@ function num(formData: FormData, key: string): number | undefined {
   return Number(value)
 }
 
+/** Imagen en un alta: sube el archivo si viene uno, si no deja el campo tal cual (sin foto). */
+async function resolveNewImage(formData: FormData, uploadFn: (file: File) => Promise<{ url: string; path: string }>) {
+  const file = formData.get('image')
+  if (file instanceof File && file.size > 0) {
+    const uploaded = await uploadFn(file)
+    return { imageUrl: uploaded.url, imagePath: uploaded.path }
+  }
+  return {}
+}
+
+/** Imagen en una edición: reemplaza (borrando la anterior), quita (checkbox "Eliminar foto"), o deja igual. */
+async function resolveImageUpdate(
+  formData: FormData,
+  previousPath: string | null,
+  uploadFn: (file: File) => Promise<{ url: string; path: string }>,
+  deleteFn: (path: string) => Promise<void>
+): Promise<{ imageUrl?: string | null; imagePath?: string | null }> {
+  const file = formData.get('image')
+  const removeImage = formData.get('removeImage') === 'true'
+
+  if (file instanceof File && file.size > 0) {
+    const uploaded = await uploadFn(file)
+    if (previousPath) await deleteFn(previousPath)
+    return { imageUrl: uploaded.url, imagePath: uploaded.path }
+  }
+  if (removeImage && previousPath) {
+    await deleteFn(previousPath)
+    return { imageUrl: null, imagePath: null }
+  }
+  return {}
+}
+
 export async function createProductAction(formData: FormData) {
+  const imageUpdate = await resolveNewImage(formData, uploadProductImage)
   await createProduct({
     name: String(formData.get('name')),
     categoryId: (formData.get('categoryId') as string) || undefined,
@@ -22,6 +56,7 @@ export async function createProductAction(formData: FormData) {
     stockMin: num(formData, 'stockMin') ?? 0,
     costPerUnit: num(formData, 'costPerUnit') ?? 0,
     supplier: (formData.get('supplier') as string) || undefined,
+    ...imageUpdate,
   })
   revalidatePath('/admin/inventario')
 }
@@ -34,6 +69,9 @@ export async function restockProductAction(productId: string, formData: FormData
 }
 
 export async function updateProductAction(productId: string, formData: FormData) {
+  const previousPath = await getProductImagePath(productId)
+  const imageUpdate = await resolveImageUpdate(formData, previousPath, uploadProductImage, deleteProductImage)
+
   await updateProduct(productId, {
     name: String(formData.get('name') ?? ''),
     categoryId: (formData.get('categoryId') as string) || undefined,
@@ -41,6 +79,7 @@ export async function updateProductAction(productId: string, formData: FormData)
     stockMin: num(formData, 'stockMin') ?? 0,
     costPerUnit: num(formData, 'costPerUnit') ?? 0,
     supplier: (formData.get('supplier') as string) || undefined,
+    ...imageUpdate,
   })
   revalidatePath('/admin/inventario')
 }
@@ -51,11 +90,27 @@ export async function deleteProductAction(productId: string) {
 }
 
 export async function createInstrumentAction(formData: FormData) {
+  const imageUpdate = await resolveNewImage(formData, uploadInstrumentImage)
   await createInstrument({
     name: String(formData.get('name')),
     type: formData.get('type') as InstrumentType,
     expectedLifeHours: num(formData, 'expectedLifeHours'),
     expectedLifeUses: num(formData, 'expectedLifeUses'),
+    ...imageUpdate,
+  })
+  revalidatePath('/admin/inventario')
+}
+
+export async function updateInstrumentAction(instrumentId: string, formData: FormData) {
+  const previousPath = await getInstrumentImagePath(instrumentId)
+  const imageUpdate = await resolveImageUpdate(formData, previousPath, uploadInstrumentImage, deleteInstrumentImage)
+
+  await updateInstrument(instrumentId, {
+    name: String(formData.get('name') ?? ''),
+    type: formData.get('type') as InstrumentType,
+    expectedLifeHours: num(formData, 'expectedLifeHours'),
+    expectedLifeUses: num(formData, 'expectedLifeUses'),
+    ...imageUpdate,
   })
   revalidatePath('/admin/inventario')
 }
