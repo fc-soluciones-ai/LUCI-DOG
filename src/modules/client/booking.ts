@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { BLOCKING_STATUSES } from '@/modules/agenda/booking'
 import { scheduleAppointmentNotifications } from '@/modules/agenda/notifications'
 import { BookingBlockedError, ValidationError } from '@/modules/agenda/errors'
+import { assertBookableGroomer } from '@/modules/agenda/groomers'
 import { assertNoPetOverlap, assertSlotAvailable, computeDurationMinutes, getAvailableSlots } from '@/modules/agenda/availability'
 
 export { getAvailableSlots }
@@ -12,6 +13,7 @@ export interface ClientBookingInput {
   petId: string
   serviceId: string
   scheduledStart: Date
+  groomerId?: string // preferencia del cliente; vacío = cualquier groomer
 }
 
 /** Agenda una cita para el tutor autenticado — tutorId siempre viene de la sesión, nunca del formulario. */
@@ -26,6 +28,7 @@ export async function createAppointmentByClient(tutorId: string, input: ClientBo
 
   const pet = await prisma.pet.findFirstOrThrow({ where: { id: input.petId, tutorId } })
   const service = await prisma.service.findUniqueOrThrow({ where: { id: input.serviceId } })
+  const groomerId = await assertBookableGroomer(input.groomerId)
 
   await assertSlotAvailable(input.scheduledStart, input.serviceId, pet.sizeCategory)
   const durationMin = computeDurationMinutes(service.standardDurationMin, pet.sizeCategory)
@@ -37,6 +40,7 @@ export async function createAppointmentByClient(tutorId: string, input: ClientBo
       petId: pet.id,
       tutorId,
       serviceId: service.id,
+      groomerId,
       source: AppointmentSource.SELF_SERVICE_WEB,
       status: AppointmentStatus.PENDING_CONFIRMATION,
       scheduledStart: input.scheduledStart,

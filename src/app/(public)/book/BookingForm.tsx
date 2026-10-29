@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { formatCRC } from '@/lib/currency'
 import { groupServicesByFamily, serviceMatchesSize } from '@/modules/shared/serviceFamily'
+import { getAvailableSlotsPublicAction } from '@/modules/agenda/publicActions'
 
 interface Service {
   id: string
@@ -12,14 +13,62 @@ interface Service {
   imageUrl: string | null
 }
 
-export function BookingForm({ services }: { services: Service[] }) {
+interface Groomer {
+  id: string
+  fullName: string
+}
+
+const TIMEZONE = 'America/Costa_Rica'
+
+/** Hoy como "YYYY-MM-DD" en hora de Costa Rica (el navegador puede estar en otra zona). */
+function todayInCostaRica() {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: TIMEZONE }).format(new Date())
+}
+
+/** Instante ISO del slot → "YYYY-MM-DDTHH:mm" en hora de pared de Costa Rica, que es lo que espera /api/appointments. */
+function toCostaRicaWallTime(iso: string) {
+  const text = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(new Date(iso))
+  return text.replace(' ', 'T')
+}
+
+function costaRicaTimeLabel(iso: string) {
+  return new Date(iso).toLocaleTimeString('es-CR', { timeZone: TIMEZONE, hour: '2-digit', minute: '2-digit' })
+}
+
+export function BookingForm({ services, groomers }: { services: Service[]; groomers: Groomer[] }) {
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [consent, setConsent] = useState(false)
   const [selectedServiceId, setSelectedServiceId] = useState('')
   const [sizeCategory, setSizeCategory] = useState('')
+  const [date, setDate] = useState(todayInCostaRica)
+  const [slots, setSlots] = useState<{ start: string; available: boolean }[]>([])
+  const [loadingSlots, setLoadingSlots] = useState(false)
+  const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
 
   const selectedService = services.find((service) => service.id === selectedServiceId)
+
+  // La talla cambia la duración real, así que también cambia qué horarios caben.
+  useEffect(() => {
+    setSelectedSlot(null)
+    if (!selectedServiceId || !date) {
+      setSlots([])
+      return
+    }
+    setLoadingSlots(true)
+    getAvailableSlotsPublicAction(selectedServiceId, date, sizeCategory || undefined)
+      .then(setSlots)
+      .catch(() => setSlots([]))
+      .finally(() => setLoadingSlots(false))
+  }, [selectedServiceId, date, sizeCategory])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -44,7 +93,8 @@ export function BookingForm({ services }: { services: Service[] }) {
         weightEstimated: data.get('weight') ? Number(data.get('weight')) : undefined,
       },
       serviceId: String(data.get('serviceId') ?? ''),
-      scheduledStart: String(data.get('scheduledStart') ?? ''),
+      scheduledStart: selectedSlot ? toCostaRicaWallTime(selectedSlot) : '',
+      groomerId: data.get('groomerId') ? String(data.get('groomerId')) : undefined,
       antiFraudConsent: consent,
     }
 
@@ -58,6 +108,7 @@ export function BookingForm({ services }: { services: Service[] }) {
       setStatus('success')
       form.reset()
       setConsent(false)
+      setSelectedSlot(null)
       return
     }
 
@@ -133,7 +184,66 @@ export function BookingForm({ services }: { services: Service[] }) {
             className="h-32 w-full rounded-lg object-cover"
           />
         )}
-        <input name="scheduledStart" type="datetime-local" required className="input" />
+
+        {groomers.length > 0 && (
+          <label className="block text-sm text-slate-700">
+            ¿Con quién?
+            <select name="groomerId" defaultValue="" className="input mt-1">
+              <option value="">Cualquier groomer</option>
+              {groomers.map((groomer) => (
+                <option key={groomer.id} value={groomer.id}>
+                  {groomer.fullName}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        <label className="block text-sm text-slate-700">
+          Fecha
+          <input
+            type="date"
+            required
+            min={todayInCostaRica()}
+            value={date}
+            onChange={(event) => setDate(event.target.value)}
+            className="input mt-1"
+          />
+        </label>
+
+        <div>
+          <p className="text-sm text-slate-700">Horario</p>
+          {!selectedServiceId ? (
+            <p className="mt-1 text-xs text-slate-400">Elige un servicio para ver los horarios disponibles.</p>
+          ) : loadingSlots ? (
+            <p className="mt-1 text-xs text-slate-400">Buscando horarios disponibles...</p>
+          ) : slots.length === 0 ? (
+            <p className="mt-1 text-xs text-slate-400">Sin horarios ese día. Prueba con otra fecha.</p>
+          ) : (
+            <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-4">
+              {slots.map((slot) => {
+                const isSelected = selectedSlot === slot.start
+                return (
+                  <button
+                    key={slot.start}
+                    type="button"
+                    disabled={!slot.available}
+                    onClick={() => setSelectedSlot(slot.start)}
+                    className={`rounded-lg border px-2 py-2 text-sm font-medium ${
+                      !slot.available
+                        ? 'cursor-not-allowed border-slate-100 text-slate-300 line-through'
+                        : isSelected
+                          ? 'border-slate-900 bg-slate-900 text-white'
+                          : 'border-slate-300 text-slate-700 hover:border-slate-500'
+                    }`}
+                  >
+                    {costaRicaTimeLabel(slot.start)}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
       </fieldset>
 
       <label className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
@@ -150,7 +260,7 @@ export function BookingForm({ services }: { services: Service[] }) {
 
       <button
         type="submit"
-        disabled={!consent || status === 'submitting'}
+        disabled={!consent || !selectedSlot || status === 'submitting'}
         className="w-full rounded-lg bg-slate-900 px-4 py-2.5 font-medium text-white transition disabled:opacity-40"
       >
         {status === 'submitting' ? 'Agendando...' : 'Agendar cita'}

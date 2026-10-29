@@ -4,14 +4,25 @@ import type { SensitivityLevel } from '@prisma/client'
 import { getCosmeticHistory, getPetProfile } from '@/modules/crm/pets'
 import {
   addPetPhotoAction,
+  addPetVaccineAction,
   deactivatePetAction,
   deletePetPhotoAction,
+  deletePetVaccineAction,
   updateBiometricsAction,
   upsertClinicalRecordAction,
 } from '@/modules/crm/actions'
+import { formatVaccineDate, vaccineStatus, type VaccineStatus } from '@/modules/crm/vaccines'
 import { DataTableActions } from '@/components/admin/DataTableActions'
 
 export const dynamic = 'force-dynamic'
+
+const VACCINE_STATUS_BADGE: Record<VaccineStatus, { label: string; className: string }> = {
+  OK: { label: 'Vigente', className: 'bg-green-100 text-green-800' },
+  EXPIRING_SOON: { label: 'Vence pronto', className: 'bg-amber-100 text-amber-800' },
+  EXPIRED: { label: 'Vencida', className: 'bg-red-100 text-red-800' },
+}
+
+const COMMON_VACCINES = ['Rabia', 'Múltiple (DHPP)', 'Bordetella', 'Leptospirosis', 'Parvovirus', 'Desparasitación']
 
 const SENSITIVITY_OPTIONS: { value: SensitivityLevel; label: string }[] = [
   { value: 'NONE', label: 'Ninguna' },
@@ -86,6 +97,62 @@ export default async function PetProfilePage({ params }: { params: Promise<{ pet
       </section>
 
       <section>
+        <h2 className="text-lg font-medium text-slate-900">Vacunas</h2>
+        <p className="mt-1 text-sm text-slate-500">
+          Al agendar una cita de {pet.name} se avisa si alguna vacuna está vencida o por vencer.
+        </p>
+
+        <div className="mt-3 max-w-xl divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
+          {pet.vaccines.length === 0 && <p className="p-4 text-sm text-slate-500">Sin vacunas registradas con fecha todavía.</p>}
+          {pet.vaccines.map((vaccine) => {
+            const badge = VACCINE_STATUS_BADGE[vaccineStatus(vaccine.expiresAt)]
+            return (
+              <div key={vaccine.id} className="flex items-center justify-between gap-3 p-3">
+                <div>
+                  <p className="font-medium text-slate-900">{vaccine.name}</p>
+                  <p className="text-xs text-slate-500">
+                    Aplicada {formatVaccineDate(vaccine.appliedAt)} · vence {formatVaccineDate(vaccine.expiresAt)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${badge.className}`}>{badge.label}</span>
+                  <form action={deletePetVaccineAction.bind(null, pet.id, vaccine.id)}>
+                    <button type="submit" className="text-xs text-red-600 hover:underline">
+                      Quitar
+                    </button>
+                  </form>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        <form action={addPetVaccineAction.bind(null, pet.id)} className="mt-3 grid max-w-xl gap-2 sm:grid-cols-3">
+          <label className="text-sm text-slate-600 sm:col-span-3">
+            Vacuna
+            <input name="name" required list="common-vaccines" placeholder="Ej. Rabia" className="input mt-1 w-full" />
+            <datalist id="common-vaccines">
+              {COMMON_VACCINES.map((name) => (
+                <option key={name} value={name} />
+              ))}
+            </datalist>
+          </label>
+          <label className="text-sm text-slate-600">
+            Fecha aplicada
+            <input name="appliedAt" type="date" required className="input mt-1 w-full" />
+          </label>
+          <label className="text-sm text-slate-600">
+            Vence (opcional)
+            <input name="expiresAt" type="date" className="input mt-1 w-full" />
+          </label>
+          <p className="self-end text-xs text-slate-400">Si no pones fecha de vencimiento, se asume 12 meses.</p>
+          <button type="submit" className="col-span-full w-fit rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white">
+            Agregar vacuna
+          </button>
+        </form>
+      </section>
+
+      <section>
         <h2 className="text-lg font-medium text-slate-900">Ficha clínica y conductual</h2>
         <form
           action={upsertClinicalRecordAction.bind(null, pet.id)}
@@ -100,7 +167,7 @@ export default async function PetProfilePage({ params }: { params: Promise<{ pet
           <input
             name="vaccinations"
             defaultValue={pet.clinicalRecord?.vaccinations.join(', ') ?? ''}
-            placeholder="Vacunas (separadas por coma)"
+            placeholder="Otras vacunas o notas sin fecha (separadas por coma)"
             className="input sm:col-span-2"
           />
           <label className="text-sm text-slate-600">

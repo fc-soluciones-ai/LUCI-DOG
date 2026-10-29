@@ -48,7 +48,12 @@ export async function createAppointmentByClientAction(
   }
 
   try {
-    await createAppointmentByClient(profile.tutorId, { petId, serviceId, scheduledStart: new Date(scheduledStart) })
+    await createAppointmentByClient(profile.tutorId, {
+      petId,
+      serviceId,
+      scheduledStart: new Date(scheduledStart),
+      groomerId: str(formData, 'groomerId'),
+    })
   } catch (error) {
     if (error instanceof BookingBlockedError || error instanceof ValidationError) {
       return { ok: false, message: error.message }

@@ -23,7 +23,7 @@ export async function listAppointmentsForAdmin(filters: AdminAppointmentFilters)
     },
     orderBy: { scheduledStart: 'asc' },
     include: {
-      pet: { select: { name: true, breed: true, sizeCategory: true } },
+      pet: { select: { name: true, breed: true, sizeCategory: true, vaccines: { select: { name: true, expiresAt: true } } } },
       tutor: { select: { fullName: true, phoneWhatsApp: true } },
       service: { select: { name: true } },
       groomer: { select: { fullName: true } },

@@ -4,6 +4,8 @@ import { cancelAppointmentByClientAction } from '@/modules/client/actions'
 import { AppointmentFormModal } from '@/components/client/AppointmentFormModal'
 import { DataTableActions } from '@/components/admin/DataTableActions'
 import { formatInBusinessTz } from '@/modules/agenda/timezone'
+import { listBookableGroomers } from '@/modules/agenda/groomers'
+import { vaccineAlertText } from '@/modules/crm/vaccines'
 
 export const dynamic = 'force-dynamic'
 
@@ -36,10 +38,11 @@ const CANCELLABLE = new Set(['PENDING_CONFIRMATION', 'CONFIRMED', 'RESCHEDULE_RE
 
 export default async function ClientCitasPage() {
   const profile = await requireRole(['CLIENT'])
-  const [appointments, pets, services] = await Promise.all([
+  const [appointments, pets, services, groomers] = await Promise.all([
     listClientAppointments(profile.tutorId!),
     listClientPets(profile.tutorId!),
     listBookableServices(),
+    listBookableGroomers(),
   ])
 
   return (
@@ -48,8 +51,14 @@ export default async function ClientCitasPage() {
         <h1 className="text-2xl font-semibold text-slate-900">Mis Citas</h1>
         <AppointmentFormModal
           mode="create"
-          pets={pets.map((pet) => ({ id: pet.id, name: pet.name, sizeCategory: pet.sizeCategory }))}
+          pets={pets.map((pet) => ({
+            id: pet.id,
+            name: pet.name,
+            sizeCategory: pet.sizeCategory,
+            vaccineAlert: vaccineAlertText(pet.vaccines),
+          }))}
           services={services.map((service) => ({ ...service, basePrice: Number(service.basePrice) }))}
+          groomers={groomers}
         />
       </div>
 

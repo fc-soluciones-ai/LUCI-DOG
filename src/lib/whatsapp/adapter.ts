@@ -29,6 +29,12 @@ const TEMPLATES: Record<string, (vars: Record<string, string>) => string> = {
     `¡Listo! El servicio de ${v.petName} ha terminado 🐾\n\nTotal a pagar: $${v.total}\n\nDatos de pago:\n${v.paymentInfo}\n\nEn cuanto realices tu pago, sube tu comprobante aquí para desbloquear tu próxima cita: ${v.proofLink}`,
   DELAY_ALERT: (v) =>
     `Aviso: tu cita para ${v.petName} podría retrasarse por el Efecto en Cadena de citas anteriores. Te avisaremos la nueva hora estimada, disculpa la demora.`,
+  PET_READY: (v) =>
+    v.photoUrl
+      ? `¡${v.petName} está listo! 🐾✨ Aquí su foto: ${v.photoUrl}\nPuedes pasar a recogerlo cuando gustes.`
+      : `¡${v.petName} está listo! 🐾✨ Puedes pasar a recogerlo cuando gustes.`,
+  REBOOK_REMINDER: (v) =>
+    `Hola ${v.tutorName}! Ya va siendo hora del próximo baño de ${v.petName} 🐾 ¿Te agendamos una cita? Reserva aquí: ${v.bookingUrl}`,
 }
 
 // Nombres en español que el admin puede escribir en sus plantillas personalizadas
@@ -38,6 +44,8 @@ const SPANISH_VAR_ALIASES: Record<string, string> = {
   nombre_perro: 'petName',
   fecha_cita: 'date',
   link_pago: 'proofLink',
+  link_foto: 'photoUrl',
+  link_reserva: 'bookingUrl',
 }
 
 function withSpanishAliases(vars: Record<string, string>): Record<string, string> {
@@ -52,6 +60,11 @@ function withSpanishAliases(vars: Record<string, string>): Record<string, string
 function renderCustomTemplate(template: string, vars: Record<string, string>): string {
   const merged = withSpanishAliases(vars)
   return template.replace(/\{(\w+)\}/g, (match, key: string) => merged[key] ?? match)
+}
+
+/** Texto final de un mensaje (plantilla del admin si la editó, o la de por defecto) — lo usan el envío automático y el manual. */
+export async function renderWhatsAppTemplate(name: string, vars: Record<string, string>): Promise<string> {
+  return renderTemplate(name, vars)
 }
 
 async function renderTemplate(name: string, vars: Record<string, string>): Promise<string> {
@@ -107,6 +120,17 @@ class TwilioWhatsAppProvider implements WhatsAppProvider {
     const data = (await response.json()) as { sid: string }
     return { providerMessageId: data.sid }
   }
+}
+
+/**
+ * ¿Hay credenciales reales de Twilio? Sin ellas el envío automático NO debe
+ * correr: el proveedor de consola solo imprime y marcaría los avisos como
+ * enviados sin que nadie los reciba. En ese caso los avisos quedan en cola y
+ * se mandan a mano desde /admin/avisos (WhatsApp manual).
+ */
+export function isWhatsAppAutomationEnabled(): boolean {
+  const { TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_FROM } = process.env
+  return Boolean(TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN && TWILIO_WHATSAPP_FROM)
 }
 
 let cachedProvider: WhatsAppProvider | null = null

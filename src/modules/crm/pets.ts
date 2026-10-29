@@ -1,14 +1,16 @@
 import { AppointmentStatus, type SensitivityLevel } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { deletePetPhotoFile, uploadPetPhoto } from '@/lib/supabase/storage'
+import { vaccineAlertText } from './vaccines'
 
-/** Mascotas activas de un tutor — usado por el selector de mascota al agendar (admin y self-service). */
+/** Mascotas activas de un tutor — usado por el selector de mascota al agendar (admin), con su alerta de vacunas. */
 export async function listPetsForTutor(tutorId: string) {
-  return prisma.pet.findMany({
+  const pets = await prisma.pet.findMany({
     where: { tutorId, active: true },
-    select: { id: true, name: true, breed: true, sizeCategory: true },
+    select: { id: true, name: true, breed: true, sizeCategory: true, vaccines: { select: { name: true, expiresAt: true } } },
     orderBy: { createdAt: 'desc' },
   })
+  return pets.map(({ vaccines, ...pet }) => ({ ...pet, vaccineAlert: vaccineAlertText(vaccines) }))
 }
 
 export async function getPetProfile(petId: string) {
@@ -18,6 +20,7 @@ export async function getPetProfile(petId: string) {
       tutor: true,
       clinicalRecord: true,
       photos: { orderBy: { takenAt: 'desc' } },
+      vaccines: { orderBy: { expiresAt: 'desc' } },
     },
   })
 }

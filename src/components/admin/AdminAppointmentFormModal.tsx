@@ -36,6 +36,7 @@ interface PetResult {
   name: string
   breed: string
   sizeCategory: string | null
+  vaccineAlert: string | null
 }
 
 const initialState: AdminBookingState = { ok: false }
@@ -245,22 +246,29 @@ export function AdminAppointmentFormModal({
                   </select>
                 </div>
               ) : (
-                <select
-                  name="petId"
-                  required
-                  value={petId}
-                  onChange={(event) => setPetId(event.target.value)}
-                  className="input mt-2 w-full"
-                >
-                  <option value="" disabled>
-                    Selecciona la mascota
-                  </option>
-                  {pets.map((pet) => (
-                    <option key={pet.id} value={pet.id}>
-                      {pet.name} — {pet.breed}
+                <>
+                  <select
+                    name="petId"
+                    required
+                    value={petId}
+                    onChange={(event) => setPetId(event.target.value)}
+                    className="input mt-2 w-full"
+                  >
+                    <option value="" disabled>
+                      Selecciona la mascota
                     </option>
-                  ))}
-                </select>
+                    {pets.map((pet) => (
+                      <option key={pet.id} value={pet.id}>
+                        {pet.name} — {pet.breed}
+                      </option>
+                    ))}
+                  </select>
+                  {pets.find((pet) => pet.id === petId)?.vaccineAlert && (
+                    <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900">
+                      💉 {pets.find((pet) => pet.id === petId)?.vaccineAlert}. Avísale al dueño antes de la cita.
+                    </p>
+                  )}
+                </>
               )}
             </div>
           )}

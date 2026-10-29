@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { requireRole } from '@/modules/auth/profile'
 import { getClientPetDetail, getClientPetHistory } from '@/modules/client/portal'
+import { formatVaccineDate, vaccineStatus } from '@/modules/crm/vaccines'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,9 +44,24 @@ export default async function ClientPetDetailPage({ params }: { params: Promise<
             <dt className="text-slate-500">Alergias</dt>
             <dd className="text-slate-900">{pet.clinicalRecord?.allergies.join(', ') || '—'}</dd>
           </div>
-          <div className="flex justify-between">
+          <div className="flex justify-between gap-4">
             <dt className="text-slate-500">Vacunas</dt>
-            <dd className="text-slate-900">{pet.clinicalRecord?.vaccinations.join(', ') || '—'}</dd>
+            <dd className="space-y-1 text-right text-slate-900">
+              {pet.vaccines.map((vaccine) => {
+                const status = vaccineStatus(vaccine.expiresAt)
+                return (
+                  <p key={vaccine.id}>
+                    {vaccine.name} · vence {formatVaccineDate(vaccine.expiresAt)}
+                    {status === 'EXPIRED' && <span className="ml-1 font-medium text-red-700">(vencida)</span>}
+                    {status === 'EXPIRING_SOON' && <span className="ml-1 font-medium text-amber-700">(vence pronto)</span>}
+                  </p>
+                )
+              })}
+              {pet.clinicalRecord && pet.clinicalRecord.vaccinations.length > 0 && (
+                <p className="text-slate-500">{pet.clinicalRecord.vaccinations.join(', ')}</p>
+              )}
+              {pet.vaccines.length === 0 && !pet.clinicalRecord?.vaccinations.length && <p>—</p>}
+            </dd>
           </div>
           <div className="flex justify-between">
             <dt className="text-slate-500">Sensibilidad acústica</dt>

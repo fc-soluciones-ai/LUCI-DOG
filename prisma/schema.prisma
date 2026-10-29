@@ -73,6 +73,7 @@ enum NotificationStatus {
   READ
   FAILED
   RESPONDED
+  SKIPPED // descartado a mano desde Avisos (modo WhatsApp manual)
 }
 
 enum ServiceStageType {
@@ -213,10 +214,40 @@ model Pet {
   tutor           Tutor            @relation(fields: [tutorId], references: [id], onDelete: Cascade)
   clinicalRecord  ClinicalRecord?
   photos          PetPhoto[]
+  vaccines        PetVaccine[]
+  rebookReminders RebookReminderLog[]
   appointments    Appointment[]
   recurringSchedules RecurringSchedule[]
 
   @@index([tutorId])
+}
+
+// Bitácora de recordatorios "Toca volver" enviados (WhatsApp manual) — evita
+// recordarle lo mismo al mismo cliente cada día.
+model RebookReminderLog {
+  id     String   @id @default(cuid())
+  petId  String
+  sentAt DateTime @default(now())
+
+  pet Pet @relation(fields: [petId], references: [id], onDelete: Cascade)
+
+  @@index([petId, sentAt])
+}
+
+// Vacunas con fecha de vencimiento — alimentan la alerta "vacuna vencida" al
+// agendar. ClinicalRecord.vaccinations (texto libre) se conserva para notas
+// anteriores y otras vacunas sin fecha.
+model PetVaccine {
+  id        String   @id @default(cuid())
+  petId     String
+  name      String
+  appliedAt DateTime @db.Date
+  expiresAt DateTime @db.Date
+  createdAt DateTime @default(now())
+
+  pet Pet @relation(fields: [petId], references: [id], onDelete: Cascade)
+
+  @@index([petId])
 }
 
 model PetPhoto {

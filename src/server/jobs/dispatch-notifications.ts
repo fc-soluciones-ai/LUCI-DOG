@@ -1,6 +1,6 @@
 import { NotificationStatus } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { WHATSAPP_STAGE_TEMPLATE, getWhatsAppProvider } from '@/lib/whatsapp/adapter'
+import { WHATSAPP_STAGE_TEMPLATE, getWhatsAppProvider, isWhatsAppAutomationEnabled } from '@/lib/whatsapp/adapter'
 import { formatInBusinessTz } from '@/modules/agenda/timezone'
 
 /**
@@ -9,6 +9,12 @@ import { formatInBusinessTz } from '@/modules/agenda/timezone'
  * cada 1-5 minutos vía POST /api/cron/dispatch-notifications.
  */
 export async function dispatchDueNotifications() {
+  // Sin Twilio configurado no se envía nada ni se marca nada: los avisos
+  // siguen en cola para mandarlos a mano desde /admin/avisos.
+  if (!isWhatsAppAutomationEnabled()) {
+    return { processed: 0, sent: 0, failed: 0, skipped: 'Twilio no configurado — usar WhatsApp manual en /admin/avisos' }
+  }
+
   const due = await prisma.notificationLog.findMany({
     where: { status: NotificationStatus.QUEUED, scheduledFor: { lte: new Date() } },
     include: {

@@ -23,6 +23,7 @@ const CATEGORIES: NavCategory[] = [
     label: 'Operación',
     items: [
       { href: '/admin/appointments', label: 'Citas' },
+      { href: '/admin/avisos', label: 'Avisos WhatsApp' },
       { href: '/groomer', label: 'Piso de trabajo' },
       { href: '/admin/mise-en-place', label: 'Mise en Place' },
     ],

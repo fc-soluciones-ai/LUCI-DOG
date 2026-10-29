@@ -15,6 +15,7 @@ interface PetOption {
   id: string
   name: string
   sizeCategory: string | null
+  vaccineAlert: string | null
 }
 
 interface ServiceOption {
@@ -32,8 +33,13 @@ interface RescheduleTarget {
   serviceName: string
 }
 
+interface GroomerOption {
+  id: string
+  fullName: string
+}
+
 type Props =
-  | { mode: 'create'; pets: PetOption[]; services: ServiceOption[] }
+  | { mode: 'create'; pets: PetOption[]; services: ServiceOption[]; groomers: GroomerOption[] }
   | { mode: 'reschedule'; appointment: RescheduleTarget }
 
 const initialState: ClientActionState = { ok: false }
@@ -111,6 +117,12 @@ export function AppointmentFormModal(props: Props) {
                     </option>
                   ))}
                 </select>
+                {props.pets.find((pet) => pet.id === petId)?.vaccineAlert && (
+                  <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900">
+                    💉 {props.pets.find((pet) => pet.id === petId)?.vaccineAlert}. Ponla al día cuanto antes y avísanos
+                    por WhatsApp.
+                  </p>
+                )}
               </label>
               <label className="text-sm text-slate-700">
                 Servicio
@@ -139,6 +151,19 @@ export function AppointmentFormModal(props: Props) {
                   <p className="mt-1 text-xs text-slate-400">✓ = talla registrada de tu mascota ({sizeCategory}).</p>
                 )}
               </label>
+              {props.groomers.length > 0 && (
+                <label className="text-sm text-slate-700">
+                  ¿Con quién?
+                  <select name="groomerId" defaultValue="" className="input mt-1 w-full">
+                    <option value="">Cualquier groomer</option>
+                    {props.groomers.map((groomer) => (
+                      <option key={groomer.id} value={groomer.id}>
+                        {groomer.fullName}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
             </>
           ) : (
             <>

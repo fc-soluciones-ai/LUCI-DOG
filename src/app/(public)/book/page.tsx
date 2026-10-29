@@ -1,14 +1,18 @@
 import { prisma } from '@/lib/prisma'
+import { listBookableGroomers } from '@/modules/agenda/groomers'
 import { BookingForm } from './BookingForm'
 
 export const dynamic = 'force-dynamic'
 
 export default async function BookPage() {
-  const services = await prisma.service.findMany({
-    where: { active: true },
-    select: { id: true, name: true, basePrice: true, standardDurationMin: true, imageUrl: true },
-    orderBy: { name: 'asc' },
-  })
+  const [services, groomers] = await Promise.all([
+    prisma.service.findMany({
+      where: { active: true },
+      select: { id: true, name: true, basePrice: true, standardDurationMin: true, imageUrl: true },
+      orderBy: { name: 'asc' },
+    }),
+    listBookableGroomers(),
+  ])
 
   return (
     <main className="mx-auto max-w-2xl px-4 py-10">
@@ -18,6 +22,7 @@ export default async function BookPage() {
       </p>
       <BookingForm
         services={services.map((s) => ({ ...s, basePrice: Number(s.basePrice) }))}
+        groomers={groomers}
       />
     </main>
   )

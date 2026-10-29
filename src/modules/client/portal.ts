@@ -37,7 +37,10 @@ export async function listClientPets(tutorId: string) {
   return prisma.pet.findMany({
     where: { tutorId, active: true },
     orderBy: { createdAt: 'desc' },
-    include: { photos: { where: { type: 'PROFILE' }, take: 1 } },
+    include: {
+      photos: { where: { type: 'PROFILE' }, take: 1 },
+      vaccines: { select: { name: true, expiresAt: true } },
+    },
   })
 }
 
@@ -45,7 +48,7 @@ export async function listClientPets(tutorId: string) {
 export async function getClientPetDetail(tutorId: string, petId: string) {
   return prisma.pet.findUnique({
     where: { id: petId, tutorId },
-    include: { clinicalRecord: true, photos: { orderBy: { takenAt: 'desc' } } },
+    include: { clinicalRecord: true, photos: { orderBy: { takenAt: 'desc' } }, vaccines: { orderBy: { expiresAt: 'desc' } } },
   })
 }
 

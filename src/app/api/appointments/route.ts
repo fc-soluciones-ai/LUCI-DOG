@@ -25,6 +25,7 @@ const bookingSchema = z.object({
   // de Costa Rica más abajo. z.coerce.date() lo parseaba como hora del
   // servidor (UTC en Vercel), desfasando la cita hasta 6 horas.
   scheduledStart: z.string().min(1),
+  groomerId: z.string().optional(),
   antiFraudConsent: z.literal(true),
 })
 

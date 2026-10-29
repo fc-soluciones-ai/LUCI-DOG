@@ -5,6 +5,7 @@ import { SensitivityLevel } from '@prisma/client'
 import { createPetForTutor, createTutor, softDeleteTutor, updateTutor } from './tutors'
 import { addPetPhoto, deactivatePet, deletePetPhoto, updatePetBiometrics, upsertClinicalRecord } from './pets'
 import { createClientUser } from '@/modules/auth/users'
+import { addPetVaccine, deletePetVaccine } from './vaccines'
 
 function str(formData: FormData, key: string): string | undefined {
   const value = formData.get(key)
@@ -146,6 +147,27 @@ export async function upsertClinicalRecordAction(petId: string, formData: FormDa
     medicalNotes: str(formData, 'medicalNotes'),
   })
   revalidatePath(`/admin/mascotas/${petId}`)
+}
+
+function parseDateOnly(value: string | undefined): Date | undefined {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return undefined
+  return new Date(`${value}T00:00:00Z`)
+}
+
+export async function addPetVaccineAction(petId: string, formData: FormData) {
+  const name = str(formData, 'name')
+  const appliedAt = parseDateOnly(str(formData, 'appliedAt'))
+  if (!name || !appliedAt) return
+
+  await addPetVaccine(petId, { name, appliedAt, expiresAt: parseDateOnly(str(formData, 'expiresAt')) })
+  revalidatePath(`/admin/mascotas/${petId}`)
+  revalidatePath('/admin/appointments')
+}
+
+export async function deletePetVaccineAction(petId: string, vaccineId: string, _formData: FormData) {
+  await deletePetVaccine(vaccineId)
+  revalidatePath(`/admin/mascotas/${petId}`)
+  revalidatePath('/admin/appointments')
 }
 
 export async function addPetPhotoAction(petId: string, formData: FormData) {

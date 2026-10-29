@@ -12,6 +12,8 @@ const WHATSAPP_TEMPLATES: { name: string; label: string }[] = [
   { name: 'DEPARTURE_15MIN', label: 'Aviso de salida (15 min antes)' },
   { name: 'RECEIPT', label: 'Recibo de cobro (con link de pago)' },
   { name: 'DELAY_ALERT', label: 'Aviso de retraso' },
+  { name: 'PET_READY', label: 'Aviso de "tu mascota está lista" (con foto)' },
+  { name: 'REBOOK_REMINDER', label: 'Recordatorio del próximo baño ("Toca volver")' },
 ]
 
 export default async function BrandingPage() {
@@ -129,8 +131,9 @@ export default async function BrandingPage() {
         <p className="mt-1 text-sm text-slate-500">
           Deja un mensaje en blanco para usar el texto por defecto. Variables disponibles:{' '}
           <code className="text-xs">{'{nombre_cliente}'}</code> <code className="text-xs">{'{nombre_perro}'}</code>{' '}
-          <code className="text-xs">{'{fecha_cita}'}</code> <code className="text-xs">{'{link_pago}'}</code> (no todas
-          aplican a todas las plantillas).
+          <code className="text-xs">{'{fecha_cita}'}</code> <code className="text-xs">{'{link_pago}'}</code>{' '}
+          <code className="text-xs">{'{link_foto}'}</code> <code className="text-xs">{'{link_reserva}'}</code> (no
+          todas aplican a todas las plantillas).
         </p>
         <div className="mt-3 space-y-4">
           {WHATSAPP_TEMPLATES.map((template) => (

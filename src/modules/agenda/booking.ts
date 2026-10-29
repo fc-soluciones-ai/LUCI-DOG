@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { scheduleAppointmentNotifications } from './notifications'
 import { BookingBlockedError, ValidationError } from './errors'
 import { assertNoPetOverlap, assertSlotAvailable, computeDurationMinutes } from './availability'
+import { assertBookableGroomer } from './groomers'
 
 // Regla anti-morosidad (Módulo 6): estos estados bloquean el auto-agendamiento
 // hasta que se verifique el comprobante o el admin desautorice manualmente.
@@ -30,6 +31,7 @@ export interface SelfServiceBookingInput {
   }
   serviceId: string
   scheduledStart: Date
+  groomerId?: string // preferencia del cliente; vacío = cualquier groomer
   antiFraudConsent: boolean
 }
 
@@ -42,6 +44,7 @@ export async function createSelfServiceBooking(input: SelfServiceBookingInput) {
   // (modules/client/booking.ts) — este flujo self-service antes no validaba
   // disponibilidad en absoluto, aceptaba cualquier horario a ciegas.
   const service = await prisma.service.findUniqueOrThrow({ where: { id: input.serviceId } })
+  const groomerId = await assertBookableGroomer(input.groomerId)
   await assertSlotAvailable(input.scheduledStart, input.serviceId, input.pet.sizeCategory)
   const durationMin = computeDurationMinutes(service.standardDurationMin, input.pet.sizeCategory)
   const scheduledEnd = new Date(input.scheduledStart.getTime() + durationMin * 60_000)
@@ -94,6 +97,7 @@ export async function createSelfServiceBooking(input: SelfServiceBookingInput) {
         petId: pet.id,
         tutorId: tutor.id,
         serviceId: service.id,
+        groomerId,
         source: AppointmentSource.SELF_SERVICE_WEB,
         status: AppointmentStatus.PENDING_CONFIRMATION,
         scheduledStart: input.scheduledStart,

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { listAppointmentsForAdmin } from '@/modules/agenda/adminAppointments'
 import { formatInBusinessTz, parseZonedDateTime, zonedDayOfWeek, zonedDayStart, zonedMinutesSinceMidnight } from '@/modules/agenda/timezone'
 import { getBusinessHourForDay } from '@/modules/config/businessHours'
+import { vaccineAlertText } from '@/modules/crm/vaccines'
 import { AdminAppointmentFormModal } from '@/components/admin/AdminAppointmentFormModal'
 import { AppointmentFilters } from '@/components/admin/AppointmentFilters'
 import { AppointmentDayNav } from '@/components/admin/AppointmentDayNav'
@@ -83,6 +84,8 @@ export default async function AdminAppointmentsPage({ searchParams }: { searchPa
     const chips: string[] = []
     if (appointment.groomer) chips.push(appointment.groomer.fullName)
     if (appointment.appointmentSteps[0]?.workstation) chips.push(appointment.appointmentSteps[0].workstation.name)
+    const vaccineAlert = vaccineAlertText(appointment.pet.vaccines)
+    if (vaccineAlert) chips.push(`💉 ${vaccineAlert}`)
     chips.push(STATUS_LABEL[appointment.status] ?? appointment.status)
 
     return {
