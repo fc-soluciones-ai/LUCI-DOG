@@ -33,6 +33,8 @@ const TEMPLATES: Record<string, (vars: Record<string, string>) => string> = {
     v.photoUrl
       ? `¡${v.petName} está listo! 🐾✨ Aquí su foto: ${v.photoUrl}\nPuedes pasar a recogerlo cuando gustes.`
       : `¡${v.petName} está listo! 🐾✨ Puedes pasar a recogerlo cuando gustes.`,
+  BIRTHDAY: (v) =>
+    `¡Feliz cumpleaños, ${v.petName}! 🎂🐾 Cumple ${v.age} y todo el equipo le manda un abrazo. Cuando quieras consentirlo, reserva aquí: ${v.bookingUrl}`,
   REBOOK_REMINDER: (v) =>
     `Hola ${v.tutorName}! Ya va siendo hora del próximo baño de ${v.petName} 🐾 ¿Te agendamos una cita? Reserva aquí: ${v.bookingUrl}`,
 }
@@ -46,6 +48,7 @@ const SPANISH_VAR_ALIASES: Record<string, string> = {
   link_pago: 'proofLink',
   link_foto: 'photoUrl',
   link_reserva: 'bookingUrl',
+  edad: 'age',
 }
 
 function withSpanishAliases(vars: Record<string, string>): Record<string, string> {

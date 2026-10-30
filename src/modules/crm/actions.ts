@@ -121,6 +121,7 @@ export async function updateBiometricsAction(petId: string, formData: FormData) 
     coatType: str(formData, 'coatType'),
     weightEstimated: num(formData, 'weightEstimated'),
     weightReal: num(formData, 'weightReal'),
+    birthDate: parseDateOnly(str(formData, 'birthDate')) ?? null,
   })
   revalidatePath(`/admin/mascotas/${petId}`)
 }

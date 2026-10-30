@@ -216,6 +216,7 @@ model Pet {
   photos          PetPhoto[]
   vaccines        PetVaccine[]
   rebookReminders RebookReminderLog[]
+  birthdayGreetings BirthdayGreetingLog[]
   appointments    Appointment[]
   recurringSchedules RecurringSchedule[]
 
@@ -232,6 +233,18 @@ model RebookReminderLog {
   pet Pet @relation(fields: [petId], references: [id], onDelete: Cascade)
 
   @@index([petId, sentAt])
+}
+
+// Saludo de cumpleaños ya enviado (uno por mascota y año) para no repetirlo.
+model BirthdayGreetingLog {
+  id     String   @id @default(cuid())
+  petId  String
+  year   Int
+  sentAt DateTime @default(now())
+
+  pet Pet @relation(fields: [petId], references: [id], onDelete: Cascade)
+
+  @@unique([petId, year])
 }
 
 // Vacunas con fecha de vencimiento — alimentan la alerta "vacuna vencida" al

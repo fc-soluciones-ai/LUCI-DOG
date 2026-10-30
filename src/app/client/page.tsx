@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { requireRole } from '@/modules/auth/profile'
 import { getClientDashboard } from '@/modules/client/portal'
+import { getClientLiveStatus } from '@/modules/client/liveStatus'
+import { LiveStatusCard } from '@/components/client/LiveStatusCard'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,7 +24,10 @@ const BILLING_COLOR: Record<string, string> = {
 
 export default async function ClientHomePage() {
   const profile = await requireRole(['CLIENT'])
-  const { tutor, nextAppointment } = await getClientDashboard(profile.tutorId!)
+  const [{ tutor, nextAppointment }, liveStatus] = await Promise.all([
+    getClientDashboard(profile.tutorId!),
+    getClientLiveStatus(profile.tutorId!),
+  ])
 
   return (
     <div className="space-y-8">
@@ -32,6 +37,8 @@ export default async function ClientHomePage() {
           {BILLING_LABEL[tutor.billingStatus]}
         </span>
       </div>
+
+      {liveStatus.length > 0 && <LiveStatusCard items={liveStatus} />}
 
       <section>
         <h2 className="text-lg font-medium text-slate-900">Tu próxima cita</h2>

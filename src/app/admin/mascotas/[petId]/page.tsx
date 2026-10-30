@@ -79,6 +79,15 @@ export default async function PetProfilePage({ params }: { params: Promise<{ pet
             placeholder="Peso estimado (kg)"
             className="input"
           />
+          <label className="text-sm text-slate-600 sm:col-span-2">
+            Fecha de nacimiento (para felicitarlo en su cumpleaños)
+            <input
+              name="birthDate"
+              type="date"
+              defaultValue={pet.birthDate ? pet.birthDate.toISOString().slice(0, 10) : ''}
+              className="input mt-1"
+            />
+          </label>
           <input
             name="weightReal"
             type="number"

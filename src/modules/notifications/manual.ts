@@ -139,6 +139,82 @@ export async function listRebookCandidates(weeks: number, bookingUrl: string): P
   return candidates.sort((a, b) => b.weeksSince - a.weeksSince).slice(0, 100)
 }
 
+const BIRTHDAY_WINDOW_DAYS = 7
+
+export interface BirthdayCandidate {
+  petId: string
+  petName: string
+  tutorName: string
+  year: number
+  age: number
+  daysUntil: number
+  dateLabel: string
+  text: string
+  whatsappUrl: string
+}
+
+function isLeapYear(year: number) {
+  return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0
+}
+
+/** Mascotas que cumplen años hoy o en los próximos días, sin saludo enviado ese año. */
+export async function listUpcomingBirthdays(bookingUrl: string): Promise<BirthdayCandidate[]> {
+  const [todayYear, todayMonth, todayDay] = formatInBusinessTz(new Date(), 'yyyy-MM-dd').split('-').map(Number)
+  const todayMs = Date.UTC(todayYear, todayMonth - 1, todayDay)
+
+  const pets = await prisma.pet.findMany({
+    where: { active: true, birthDate: { not: null }, tutor: { deletedAt: null } },
+    include: { tutor: true, birthdayGreetings: { select: { year: true } } },
+    take: 1000,
+  })
+
+  const candidates: BirthdayCandidate[] = []
+  for (const pet of pets) {
+    const birth = pet.birthDate!
+    const month = birth.getUTCMonth()
+    const rawDay = birth.getUTCDate()
+
+    for (const year of [todayYear, todayYear + 1]) {
+      const day = month === 1 && rawDay === 29 && !isLeapYear(year) ? 28 : rawDay
+      const occurrenceMs = Date.UTC(year, month, day)
+      if (occurrenceMs < todayMs) continue
+
+      const daysUntil = Math.round((occurrenceMs - todayMs) / DAY_MS)
+      const age = year - birth.getUTCFullYear()
+      if (daysUntil <= BIRTHDAY_WINDOW_DAYS && age >= 1 && !pet.birthdayGreetings.some((g) => g.year === year)) {
+        const text = await renderWhatsAppTemplate('BIRTHDAY', {
+          tutorName: pet.tutor.fullName,
+          petName: pet.name,
+          age: age === 1 ? '1 año' : `${age} años`,
+          bookingUrl,
+        })
+        candidates.push({
+          petId: pet.id,
+          petName: pet.name,
+          tutorName: pet.tutor.fullName,
+          year,
+          age,
+          daysUntil,
+          dateLabel: formatInBusinessTz(new Date(Date.UTC(year, month, day, 18)), "EEEE d 'de' MMMM"),
+          text,
+          whatsappUrl: buildWhatsAppLink(pet.tutor.phoneWhatsApp, text),
+        })
+      }
+      break
+    }
+  }
+
+  return candidates.sort((a, b) => a.daysUntil - b.daysUntil)
+}
+
+export async function logBirthdayGreeting(petId: string, year: number) {
+  return prisma.birthdayGreetingLog.upsert({
+    where: { petId_year: { petId, year } },
+    create: { petId, year },
+    update: {},
+  })
+}
+
 export async function markNotificationManuallySent(notificationId: string) {
   return prisma.notificationLog.updateMany({
     where: { id: notificationId, status: NotificationStatus.QUEUED },

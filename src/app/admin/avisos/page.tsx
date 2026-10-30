@@ -4,9 +4,15 @@ import { isWhatsAppAutomationEnabled } from '@/lib/whatsapp/adapter'
 import {
   listPendingManualNotifications,
   listRebookCandidates,
+  listUpcomingBirthdays,
   listTodaysReadyNoticeAppointments,
 } from '@/modules/notifications/manual'
-import { logRebookReminderAction, markNotificationSentAction, skipNotificationAction } from '@/modules/notifications/actions'
+import {
+  logBirthdayGreetingAction,
+  logRebookReminderAction,
+  markNotificationSentAction,
+  skipNotificationAction,
+} from '@/modules/notifications/actions'
 import { formatInBusinessTz } from '@/modules/agenda/timezone'
 import { WhatsAppSendLink } from '@/components/admin/WhatsAppSendLink'
 import { ReadyNoticeModal } from '@/components/admin/ReadyNoticeModal'
@@ -43,9 +49,10 @@ export default async function AvisosPage({ searchParams }: { searchParams: Promi
   const protocol = requestHeaders.get('x-forwarded-proto') ?? (host.startsWith('localhost') ? 'http' : 'https')
   const bookingUrl = `${protocol}://${host}/book`
 
-  const [pending, readyAppointments, rebook] = await Promise.all([
+  const [pending, readyAppointments, birthdays, rebook] = await Promise.all([
     listPendingManualNotifications(),
     listTodaysReadyNoticeAppointments(),
+    listUpcomingBirthdays(bookingUrl),
     listRebookCandidates(weeks, bookingUrl),
   ])
   const automated = isWhatsAppAutomationEnabled()
@@ -131,6 +138,44 @@ export default async function AvisosPage({ searchParams }: { searchParams: Promi
                 </p>
               </div>
               <ReadyNoticeModal appointmentId={appointment.id} petName={appointment.pet.name} />
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="text-lg font-medium text-slate-900">
+          Cumpleaños <span className="text-sm font-normal text-slate-400">({birthdays.length})</span>
+        </h2>
+        <p className="mt-1 text-sm text-slate-500">
+          Mascotas que cumplen años hoy o en los próximos 7 días. La fecha de nacimiento se registra en la ficha de la
+          mascota.
+        </p>
+
+        <div className="mt-3 divide-y divide-slate-200 rounded-lg border border-slate-200 bg-white">
+          {birthdays.length === 0 && <p className="p-4 text-sm text-slate-500">Ningún cumpleaños cerca.</p>}
+          {birthdays.map((birthday) => (
+            <div key={birthday.petId} className="flex flex-wrap items-center justify-between gap-3 p-4">
+              <div>
+                <p className="font-medium text-slate-900">
+                  🎂 {birthday.petName}{' '}
+                  <span className="text-sm font-normal text-slate-500">· {birthday.tutorName}</span>
+                </p>
+                <p className="text-sm text-slate-500">
+                  Cumple {birthday.age} {birthday.age === 1 ? 'año' : 'años'} ·{' '}
+                  {birthday.daysUntil === 0
+                    ? 'hoy'
+                    : birthday.daysUntil === 1
+                      ? 'mañana'
+                      : `en ${birthday.daysUntil} días`}{' '}
+                  ({birthday.dateLabel})
+                </p>
+              </div>
+              <WhatsAppSendLink
+                href={birthday.whatsappUrl}
+                label="Felicitar por WhatsApp"
+                onSent={logBirthdayGreetingAction.bind(null, birthday.petId, birthday.year)}
+              />
             </div>
           ))}
         </div>

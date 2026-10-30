@@ -31,6 +31,7 @@ export interface UpdateBiometricsInput {
   coatType?: string
   weightEstimated?: number
   weightReal?: number
+  birthDate?: Date | null
 }
 
 export async function updatePetBiometrics(petId: string, input: UpdateBiometricsInput) {

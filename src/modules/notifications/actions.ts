@@ -5,7 +5,7 @@ import { requireRole } from '@/modules/auth/profile'
 import { prisma } from '@/lib/prisma'
 import { uploadPetPhoto } from '@/lib/supabase/storage'
 import { renderWhatsAppTemplate } from '@/lib/whatsapp/adapter'
-import { buildWhatsAppLink, logRebookReminder, markNotificationManuallySent, skipNotification } from './manual'
+import { buildWhatsAppLink, logBirthdayGreeting, logRebookReminder, markNotificationManuallySent, skipNotification } from './manual'
 
 function revalidateAvisos() {
   revalidatePath('/admin/avisos')
@@ -26,6 +26,12 @@ export async function skipNotificationAction(notificationId: string) {
 export async function logRebookReminderAction(petId: string) {
   await requireRole(['ADMIN'])
   await logRebookReminder(petId)
+  revalidateAvisos()
+}
+
+export async function logBirthdayGreetingAction(petId: string, year: number) {
+  await requireRole(['ADMIN'])
+  await logBirthdayGreeting(petId, year)
   revalidateAvisos()
 }
 

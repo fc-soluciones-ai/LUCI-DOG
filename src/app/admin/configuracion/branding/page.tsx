@@ -13,6 +13,7 @@ const WHATSAPP_TEMPLATES: { name: string; label: string }[] = [
   { name: 'RECEIPT', label: 'Recibo de cobro (con link de pago)' },
   { name: 'DELAY_ALERT', label: 'Aviso de retraso' },
   { name: 'PET_READY', label: 'Aviso de "tu mascota está lista" (con foto)' },
+  { name: 'BIRTHDAY', label: 'Felicitación de cumpleaños de la mascota' },
   { name: 'REBOOK_REMINDER', label: 'Recordatorio del próximo baño ("Toca volver")' },
 ]
 
